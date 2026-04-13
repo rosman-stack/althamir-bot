@@ -209,23 +209,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🚀 Noor bot activo en puerto ${PORT}`);
   
-  // Registrar número en WhatsApp Cloud API con certificado
-  try {
-    const reg = await axios.post(
-      `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/register`,
-      {
-        messaging_product: 'whatsapp',
-        pin: '000000',
-        cert: 'CmUKIQihvPmavPHFAhIGZW50OndhIghBbHRoYW1pclDLgfHOBhpAJ3GJ9LDF8mGarlhhYzCnMoc9CkPisq/UXE/HydI3PGDCaqe4fvyNWvHe8Uo4RuQ9wOaSfk/pf+Cwl4UUgXfiBxIubVdRz87OqefwWrW3mK5oK5Be4+NextjWxz1PTq08CTCZL9bR5QeHJe++jPRYZA=='
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    console.log('✅ Número registrado:', JSON.stringify(reg.data));
-  } catch(e) {
-    console.log('ℹ️ Registro:', e.response?.data?.error?.message || e.message);
-  }
+    // Registro automático desactivado - se hace manualmente
+  console.log('✅ Bot listo para recibir mensajes');
