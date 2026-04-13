@@ -225,7 +225,7 @@ app.get('/suscribir', async (req, res) => {
   try {
     const token = 'EAALIogqV4fEBRBfWX2ujUZCENnp7ZCHZBUAUPcl1jH3xZAUJ5fs2xAZCZCkzylG81ZAxkIWVkby0jy9aYbY3P0PmtaLg5gcTcZB80jO4t1OOQgDxiFg312NXF5axygRgYy7gLq32g46UAJ6PL5sgHZCfl3vhtG7LfxCM43sgbKG1vnt02x4WQv3MRh0svzHf0FmuIOQZDZD';
     const result = await axios.post(
-      'https://graph.facebook.com/v18.0/994127326561251/subscribed_apps',
+      'https://graph.facebook.com/v18.0/1505305784594761/subscribed_apps',
       {},
       { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
     );
