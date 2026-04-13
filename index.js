@@ -205,6 +205,21 @@ app.get('/', (req, res) => {
   res.send('🖤 Noor - Bot de WhatsApp Althamir funcionando');
 });
 
+// Ruta temporal para registrar número
+app.get('/registrar', async (req, res) => {
+  try {
+    const token = 'EAALIogqV4fEBRBfWX2ujUZCENnp7ZCHZBUAUPcl1jH3xZAUJ5fs2xAZCZCkzylG81ZAxkIWVkby0jy9aYbY3P0PmtaLg5gcTcZB80jO4t1OOQgDxiFg312NXF5axygRgYy7gLq32g46UAJ6PL5sgHZCfl3vhtG7LfxCM43sgbKG1vnt02x4WQv3MRh0svzHf0FmuIOQZDZD';
+    const result = await axios.post(
+      'https://graph.facebook.com/v18.0/1095209647002673/register',
+      { messaging_product: 'whatsapp', pin: '000000' },
+      { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    res.json({ success: true, data: result.data });
+  } catch(e) {
+    res.json({ error: e.response?.data || e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Noor bot activo en puerto ${PORT}`);
