@@ -73,7 +73,7 @@ function quiereAsesor(texto) {
 async function enviarMensaje(telefono, mensaje) {
   try {
     await axios.post(
-      `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
+      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, // ← v25.0
       {
         messaging_product: 'whatsapp',
         to: telefono,
