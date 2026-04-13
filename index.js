@@ -10,8 +10,8 @@ app.use(express.json());
 
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const GROQ_API_KEY    = process.env.GROQ_API_KEY;
+const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
 
 // Historial de conversaciones por usuario
 const conversaciones = {};
@@ -39,7 +39,7 @@ Otras marcas: Maison Alhambra, Afnan, Bharara, French Avenue
 ENVÍOS: Ciudad de Guatemala entrega rápida. Interior del país coordinamos con transportistas.
 
 REGLAS IMPORTANTES:
-- Saluda siempre con el saludo apropiado según la hora (buenos días/tardes/noches)
+- Saluda siempre con el saludo apropiado según la hora indicada en el contexto
 - Para ver el catálogo completo con fotos siempre comparte: althamir.gt
 - Para pedidos, dile al cliente que un asesor le va a confirmar los detalles
 - Si no sabes algo, di que un asesor le ayudará enseguida
@@ -47,14 +47,15 @@ REGLAS IMPORTANTES:
 - Usa emojis con moderación: 🖤 ✨ 🌙 🕌
 - Nunca inventes productos ni precios fuera del catálogo
 - Siempre ofrece recomendar una fragancia si el cliente no sabe qué elegir
-- Si alguien pregunta qué recomiendas, pregunta: ¿prefieres floral, amaderado, cítrico o especiado? ¿uso diario u ocasión especial?`;
+- Si alguien pregunta qué recomiendas, pregunta: ¿prefieres floral, amaderado, cítrico o especiado? ¿uso diario u ocasión especial?
+- Usa lenguaje neutro al dirigirte al cliente. Nunca asumas género.`;
 
 // Obtener saludo según hora Guatemala (UTC-6)
 function getSaludo() {
   const hora = new Date(Date.now() - 6 * 60 * 60 * 1000).getUTCHours();
-  if (hora >= 5 && hora < 12) return 'Buenos días';
-  if (hora >= 12 && hora < 19) return 'Buenas tardes';
-  return 'Buenas noches';
+  if (hora >= 5 && hora < 12) return 'buenos días';
+  if (hora >= 12 && hora < 19) return 'buenas tardes';
+  return 'buenas noches';
 }
 
 // Detectar si es una orden desde la web
@@ -73,7 +74,7 @@ function quiereAsesor(texto) {
 async function enviarMensaje(telefono, mensaje) {
   try {
     await axios.post(
-      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`, // ← v25.0
+      `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
       {
         messaging_product: 'whatsapp',
         to: telefono,
@@ -117,8 +118,8 @@ async function llamarGroq(historial) {
 
 // ═══ WEBHOOK VERIFICACIÓN ═══
 app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
+  const mode      = req.query['hub.mode'];
+  const token     = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
@@ -134,15 +135,15 @@ app.post('/webhook', async (req, res) => {
   res.sendStatus(200); // Responder rápido a Meta
 
   try {
-    const entry = req.body.entry?.[0];
+    const entry   = req.body.entry?.[0];
     const changes = entry?.changes?.[0];
-    const value = changes?.value;
+    const value   = changes?.value;
     const mensaje = value?.messages?.[0];
 
     if (!mensaje || mensaje.type !== 'text') return;
 
     const telefono = mensaje.from;
-    const texto = mensaje.text.body.trim();
+    const texto    = mensaje.text.body.trim();
 
     console.log(`📩 Mensaje de ${telefono}: ${texto}`);
 
@@ -165,23 +166,23 @@ app.post('/webhook', async (req, res) => {
       conversaciones[telefono] = [];
     }
 
-    // Si es el primer mensaje, agregar saludo al contexto
+    // Si es el primer mensaje, inyectar saludo como instrucción interna
     const esPrimerMensaje = conversaciones[telefono].length === 0;
 
     // Agregar mensaje del usuario al historial
     conversaciones[telefono].push({ role: 'user', content: texto });
 
-    // Limitar historial a últimas 10 interacciones
+    // Limitar historial a últimas 20 interacciones
     if (conversaciones[telefono].length > 20) {
       conversaciones[telefono] = conversaciones[telefono].slice(-20);
     }
 
-    // Si es primer mensaje, agregar contexto de saludo
+    // Si es primer mensaje, inyectar contexto de hora sin corchetes
     let historialConContexto = [...conversaciones[telefono]];
     if (esPrimerMensaje) {
       historialConContexto[0] = {
         role: 'user',
-        content: `[${getSaludo()}] ${texto}`
+        content: `(El cliente escribe a las ${getSaludo()}, salúdale apropiadamente.) ${texto}`
       };
     }
 
@@ -200,39 +201,9 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-// Ruta de salud
+// ═══ RUTA DE SALUD ═══
 app.get('/', (req, res) => {
   res.send('🖤 Noor - Bot de WhatsApp Althamir funcionando');
-});
-
-// Ruta temporal para registrar número
-app.get('/registrar', async (req, res) => {
-  try {
-    const token = 'EAALIogqV4fEBRBfWX2ujUZCENnp7ZCHZBUAUPcl1jH3xZAUJ5fs2xAZCZCkzylG81ZAxkIWVkby0jy9aYbY3P0PmtaLg5gcTcZB80jO4t1OOQgDxiFg312NXF5axygRgYy7gLq32g46UAJ6PL5sgHZCfl3vhtG7LfxCM43sgbKG1vnt02x4WQv3MRh0svzHf0FmuIOQZDZD';
-    const result = await axios.post(
-      'https://graph.facebook.com/v18.0/1095209647002673/register',
-      { messaging_product: 'whatsapp', pin: '000000' },
-      { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
-    );
-    res.json({ success: true, data: result.data });
-  } catch(e) {
-    res.json({ error: e.response?.data || e.message });
-  }
-});
-
-// Suscribir número al webhook
-app.get('/suscribir', async (req, res) => {
-  try {
-    const token = 'EAALIogqV4fEBRBfWX2ujUZCENnp7ZCHZBUAUPcl1jH3xZAUJ5fs2xAZCZCkzylG81ZAxkIWVkby0jy9aYbY3P0PmtaLg5gcTcZB80jO4t1OOQgDxiFg312NXF5axygRgYy7gLq32g46UAJ6PL5sgHZCfl3vhtG7LfxCM43sgbKG1vnt02x4WQv3MRh0svzHf0FmuIOQZDZD';
-    const result = await axios.post(
-      'https://graph.facebook.com/v18.0/1505305784594761/subscribed_apps',
-      {},
-      { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }
-    );
-    res.json({ success: true, data: result.data });
-  } catch(e) {
-    res.json({ error: e.response?.data || e.message });
-  }
 });
 
 const PORT = process.env.PORT || 3000;
