@@ -206,6 +206,26 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Noor bot activo en puerto ${PORT}`);
+  
+  // Registrar número en WhatsApp Cloud API
+  try {
+    const reg = await axios.post(
+      `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/register`,
+      {
+        messaging_product: 'whatsapp',
+        pin: '000000'
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log('✅ Número registrado en WhatsApp API:', JSON.stringify(reg.data));
+  } catch(e) {
+    console.log('ℹ️ Registro:', e.response?.data?.error?.message || e.message);
+  }
 });
