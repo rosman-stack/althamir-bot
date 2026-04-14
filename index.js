@@ -12,9 +12,13 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
+const ADMIN_PHONE     = process.env.ADMIN_PHONE; // Número personal del asesor
 
 // Historial de conversaciones por usuario
 const conversaciones = {};
+
+// Clientes esperando asesor (para no notificar múltiples veces)
+const esperandoAsesor = new Set();
 
 // Sistema de Noor con conocimiento completo de Althamir
 const NOOR_SYSTEM = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes.
@@ -93,6 +97,22 @@ async function enviarMensaje(telefono, mensaje) {
   }
 }
 
+// Notificar al admin (número personal)
+async function notificarAdmin(tipo, telefono, mensaje) {
+  if (!ADMIN_PHONE) return;
+
+  let texto = '';
+
+  if (tipo === 'asesor') {
+    texto = `🔔 *ALTHAMIR — Asesor requerido*\n\nCliente: +${telefono}\nMensaje: "${mensaje}"\n\nResponde en: business.whatsapp.com 🖤`;
+  } else if (tipo === 'orden') {
+    texto = `📦 *ALTHAMIR — Nueva orden recibida*\n\nCliente: +${telefono}\nDetalle: "${mensaje}"\n\nConfirma en: business.whatsapp.com 🖤`;
+  }
+
+  await enviarMensaje(ADMIN_PHONE, texto);
+  console.log(`🔔 Admin notificado — tipo: ${tipo}, cliente: ${telefono}`);
+}
+
 // Llamar a Groq
 async function llamarGroq(historial) {
   const res = await axios.post(
@@ -151,6 +171,7 @@ app.post('/webhook', async (req, res) => {
     if (esOrdenWeb(texto)) {
       const respuesta = `✅ *¡Orden recibida!*\n\nGracias por tu pedido 🖤 Un asesor de Althamir te contactará en breve para confirmar los detalles y coordinar la entrega.\n\n_Tiempo de respuesta: menos de 1 hora en horario de atención (Lun-Sáb 9am-8pm)_`;
       await enviarMensaje(telefono, respuesta);
+      await notificarAdmin('orden', telefono, texto);
       return;
     }
 
@@ -158,6 +179,18 @@ app.post('/webhook', async (req, res) => {
     if (quiereAsesor(texto)) {
       const respuesta = `Claro, con gusto te comunico con un asesor 🖤\n\nEn un momento alguien del equipo Althamir estará contigo. Horario de atención: Lun-Sáb 9am-8pm 🌙`;
       await enviarMensaje(telefono, respuesta);
+
+      // Notificar al admin solo si no está ya esperando asesor
+      if (!esperandoAsesor.has(telefono)) {
+        esperandoAsesor.add(telefono);
+        await notificarAdmin('asesor', telefono, texto);
+      }
+      return;
+    }
+
+    // Si el cliente ya está esperando asesor, no responde Noor
+    if (esperandoAsesor.has(telefono)) {
+      console.log(`⏳ Cliente ${telefono} esperando asesor — Noor en pausa`);
       return;
     }
 
@@ -166,7 +199,6 @@ app.post('/webhook', async (req, res) => {
       conversaciones[telefono] = [];
     }
 
-    // Si es el primer mensaje, inyectar saludo como instrucción interna
     const esPrimerMensaje = conversaciones[telefono].length === 0;
 
     // Agregar mensaje del usuario al historial
@@ -177,7 +209,7 @@ app.post('/webhook', async (req, res) => {
       conversaciones[telefono] = conversaciones[telefono].slice(-20);
     }
 
-    // Si es primer mensaje, inyectar contexto de hora sin corchetes
+    // Si es primer mensaje, inyectar contexto de hora
     let historialConContexto = [...conversaciones[telefono]];
     if (esPrimerMensaje) {
       historialConContexto[0] = {
@@ -199,6 +231,18 @@ app.post('/webhook', async (req, res) => {
   } catch (error) {
     console.error('Error procesando mensaje:', error.message);
   }
+});
+
+// ═══ LIBERAR CLIENTE (asesor terminó) ═══
+// Llama a este endpoint para que Noor retome el chat
+// GET /liberar?telefono=50240880292
+app.get('/liberar', (req, res) => {
+  const telefono = req.query.telefono;
+  if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
+  esperandoAsesor.delete(telefono);
+  conversaciones[telefono] = []; // Reinicia historial
+  console.log(`✅ Cliente ${telefono} liberado — Noor retoma el chat`);
+  res.json({ success: true, mensaje: `Noor retoma el chat con ${telefono}` });
 });
 
 // ═══ RUTA DE SALUD ═══
