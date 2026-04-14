@@ -78,7 +78,7 @@ async function enviarMensaje(telefono, mensaje) {
 
 async function notificarAdmin(tipo, telefono, mensaje) {
   if (!NTFY_TOPIC) return;
-  const titulo = tipo === 'asesor' ? 'Asesor requerido — Althamir' : 'Nueva orden — Althamir';
+  const titulo = tipo === 'asesor' ? 'Asesor requerido - Althamir' : 'Nueva orden - Althamir';
   const cuerpo = `Cliente: +${telefono}\n${mensaje}`;
   try {
     await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
