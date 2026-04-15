@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const { leerInventario, formatearCatalogo } = require('./sheets');
+
 const app = express();
 app.use(express.json());
 
@@ -13,24 +15,18 @@ const NTFY_TOPIC      = process.env.NTFY_TOPIC;
 const conversaciones = {};
 const esperandoAsesor = new Set();
 
-const NOOR_SYSTEM = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes.
+const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes.
 
 SOBRE ALTHAMIR:
 - Vendemos decants y perfumes completos sellados de perfumería árabe auténtica
 - Guatemala, envíos a todo el país
-- Catálogo completo: althamir.gt
+- Catálogo completo con fotos: althamir.gt
 - Pedidos y consultas: este mismo WhatsApp
 
 QUÉ ES UN DECANT:
 Un decant es una muestra de perfume original transferida directamente de la botella sellada a un frasco pequeño (5ml o 10ml). Es 100% auténtico, ideal para probar una fragancia antes de comprar la botella completa o para llevar de viaje.
 
-CATÁLOGO CON PRECIOS:
-LATTAFA: Yara Moi (5ml Q40 · 10ml Q65) · Yara Rosa (5ml Q40 · 10ml Q65) · Yara Tous (5ml Q40 · 10ml Q65) · Asad (5ml Q45 · 10ml Q75) · Ra'ed Luxe (5ml Q35 · 10ml Q60) · Emeer (5ml Q50 · 10ml Q80) · Ramz Lattafa (5ml Q40 · 10ml Q60) · Bade'e Al Oud Amethyst (5ml Q40 · 10ml Q70) · Nebras (5ml Q45 · 10ml Q75) · Fakhar Black/Gold/Rose (5ml Q40 · 10ml Q70) · Najdia Intense (5ml Q40 · 10ml Q70) · Ejaazi (5ml Q40 · 10ml Q70) · Ajwad (5ml Q40 · 10ml Q70)
-ARMAF ODYSSEY: Mandarin Sky (5ml Q40 · 10ml Q70) · Odyssey Limoni (5ml Q40 · 10ml Q70)
-AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
-EMPER: Phantom My Hero (5ml Q50 · 10ml Q80)
-RAYHAAN: Rayhaan Elixir (5ml Q50 · 10ml Q80)
-Otras marcas: Maison Alhambra, Afnan, Bharara, French Avenue
+{{CATALOGO}}
 
 ENVÍOS: Ciudad de Guatemala entrega rápida. Interior del país coordinamos con transportistas.
 
@@ -42,9 +38,27 @@ REGLAS IMPORTANTES:
 - Respuestas cortas y directas, máximo 4 líneas
 - Usa emojis con moderación
 - Nunca inventes productos ni precios fuera del catálogo
+- Si un producto NO aparece en el catálogo, indica que no está disponible actualmente
 - Siempre ofrece recomendar una fragancia si el cliente no sabe qué elegir
 - Si alguien pregunta qué recomiendas, pregunta: prefiere floral, amaderado, cítrico o especiado, uso diario u ocasión especial
 - Usa lenguaje neutro al dirigirte al cliente. Nunca asumas género.`;
+
+// Catálogo de respaldo por si falla Sheets
+const CATALOGO_FALLBACK = `CATÁLOGO (puede no estar actualizado):
+LATTAFA: Yara Moi (5ml Q40 · 10ml Q65) · Yara Rosa (5ml Q40 · 10ml Q65) · Asad (5ml Q45 · 10ml Q75) · Ra'ed Luxe (5ml Q35 · 10ml Q60)
+AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
+Para catálogo completo y actualizado visita althamir.gt`;
+
+async function getNoorSystem() {
+  try {
+    const productos = await leerInventario();
+    const catalogo = formatearCatalogo(productos);
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo || CATALOGO_FALLBACK);
+  } catch (err) {
+    console.error('[Noor] Usando catálogo de respaldo:', err.message);
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', CATALOGO_FALLBACK);
+  }
+}
 
 function getSaludo() {
   const hora = new Date(Date.now() - 6 * 60 * 60 * 1000).getUTCHours();
@@ -84,20 +98,27 @@ async function notificarAdmin(tipo, telefono, mensaje) {
     await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
       headers: { 'Title': titulo, 'Priority': 'high', 'Content-Type': 'text/plain' }
     });
-    console.log(`Notificado via ntfy — tipo: ${tipo}, cliente: ${telefono}`);
   } catch(e) {
     console.error('Error notificando admin:', e.message);
   }
 }
 
 async function llamarGroq(historial) {
+  const systemPrompt = await getNoorSystem();
   const res = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
-    { model: 'llama-3.1-8b-instant', messages: [{ role: 'system', content: NOOR_SYSTEM }, ...historial], max_tokens: 350, temperature: 0.7 },
+    {
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'system', content: systemPrompt }, ...historial],
+      max_tokens: 350,
+      temperature: 0.7
+    },
     { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
   );
   return res.data.choices[0].message.content;
 }
+
+// ─── Webhook ────────────────────────────────────────────────────────────────
 
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -121,13 +142,13 @@ app.post('/webhook', async (req, res) => {
     console.log(`Mensaje de ${telefono}: ${texto}`);
 
     if (esOrdenWeb(texto)) {
-      await enviarMensaje(telefono, `Orden recibida. Un asesor te contactara en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
+      await enviarMensaje(telefono, `Orden recibida. Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
       await notificarAdmin('orden', telefono, texto);
       return;
     }
 
     if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estara contigo. Horario: Lun-Sab 9am-8pm`);
+      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
       if (!esperandoAsesor.has(telefono)) {
         esperandoAsesor.add(telefono);
         await notificarAdmin('asesor', telefono, texto);
@@ -160,16 +181,34 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+// ─── Rutas de administración ─────────────────────────────────────────────────
+
 app.get('/liberar', (req, res) => {
   const telefono = req.query.telefono;
-  if (!telefono) return res.status(400).json({ error: 'Falta el parametro telefono' });
+  if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
   esperandoAsesor.delete(telefono);
   conversaciones[telefono] = [];
   console.log(`Cliente ${telefono} liberado — Noor retoma el chat`);
   res.json({ success: true, mensaje: `Noor retoma el chat con ${telefono}` });
 });
 
+// Endpoint para forzar recarga del inventario (útil después de editar el Sheet)
+app.get('/reload-inventario', async (req, res) => {
+  try {
+    const { leerInventario, formatearCatalogo } = require('./sheets');
+    // Forzar recarga limpiando caché internamente llamando directo
+    const productos = await leerInventario();
+    res.json({ success: true, productos_activos: productos?.length || 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/', (req, res) => res.send('Noor - Bot de WhatsApp Althamir funcionando'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Noor bot activo en puerto ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Noor bot activo en puerto ${PORT}`);
+  // Pre-cargar inventario al arrancar
+  leerInventario().then(p => console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`));
+});
