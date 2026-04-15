@@ -2,6 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const { leerInventario, formatearCatalogo } = require('./sheets');
+const {
+  transferirAChatwoot,
+  cerrarConversacion,
+  chatwootSesiones
+} = require('./chatwoot');
 
 const app = express();
 app.use(express.json());
@@ -43,7 +48,6 @@ REGLAS IMPORTANTES:
 - Si alguien pregunta qué recomiendas, pregunta: prefiere floral, amaderado, cítrico o especiado, uso diario u ocasión especial
 - Usa lenguaje neutro al dirigirte al cliente. Nunca asumas género.`;
 
-// Catálogo de respaldo por si falla Sheets
 const CATALOGO_FALLBACK = `CATÁLOGO (puede no estar actualizado):
 LATTAFA: Yara Moi (5ml Q40 · 10ml Q65) · Yara Rosa (5ml Q40 · 10ml Q65) · Asad (5ml Q45 · 10ml Q75) · Ra'ed Luxe (5ml Q35 · 10ml Q60)
 AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
@@ -55,7 +59,6 @@ async function getNoorSystem() {
     const catalogo = formatearCatalogo(productos);
     return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo || CATALOGO_FALLBACK);
   } catch (err) {
-    console.error('[Noor] Usando catálogo de respaldo:', err.message);
     return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', CATALOGO_FALLBACK);
   }
 }
@@ -135,8 +138,22 @@ app.get('/webhook', (req, res) => {
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
   try {
+    // ── Asesor responde desde Chatwoot ──
+    const cw = req.body;
+    if (cw.event === 'message_created' && cw.message_type === 'outgoing' && !cw.private) {
+      const telefono = cw.conversation?.meta?.sender?.phone_number?.replace('+', '');
+      const contenido = cw.content;
+      if (telefono && contenido) {
+        console.log(`[Chatwoot] Asesor responde a ${telefono}: ${contenido}`);
+        await enviarMensaje(telefono, contenido);
+      }
+      return;
+    }
+
+    // ── Mensajes entrantes de WhatsApp ──
     const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     if (!mensaje || mensaje.type !== 'text') return;
+
     const telefono = mensaje.from;
     const texto = mensaje.text.body.trim();
     console.log(`Mensaje de ${telefono}: ${texto}`);
@@ -147,17 +164,18 @@ app.post('/webhook', async (req, res) => {
       return;
     }
 
-    if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
-      if (!esperandoAsesor.has(telefono)) {
-        esperandoAsesor.add(telefono);
-        await notificarAdmin('asesor', telefono, texto);
-      }
+    // Si ya está esperando asesor, reenviar mensaje a Chatwoot
+    if (esperandoAsesor.has(telefono)) {
+      await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
+      console.log(`[Chatwoot] Mensaje de ${telefono} reenviado al panel`);
       return;
     }
 
-    if (esperandoAsesor.has(telefono)) {
-      console.log(`Cliente ${telefono} esperando asesor — Noor en pausa`);
+    if (quiereAsesor(texto)) {
+      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
+      esperandoAsesor.add(telefono);
+      await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
+      await notificarAdmin('asesor', telefono, texto);
       return;
     }
 
@@ -188,15 +206,13 @@ app.get('/liberar', (req, res) => {
   if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
   esperandoAsesor.delete(telefono);
   conversaciones[telefono] = [];
+  cerrarConversacion(telefono);
   console.log(`Cliente ${telefono} liberado — Noor retoma el chat`);
   res.json({ success: true, mensaje: `Noor retoma el chat con ${telefono}` });
 });
 
-// Endpoint para forzar recarga del inventario (útil después de editar el Sheet)
 app.get('/reload-inventario', async (req, res) => {
   try {
-    const { leerInventario, formatearCatalogo } = require('./sheets');
-    // Forzar recarga limpiando caché internamente llamando directo
     const productos = await leerInventario();
     res.json({ success: true, productos_activos: productos?.length || 0 });
   } catch (err) {
@@ -209,6 +225,5 @@ app.get('/', (req, res) => res.send('Noor - Bot de WhatsApp Althamir funcionando
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Noor bot activo en puerto ${PORT}`);
-  // Pre-cargar inventario al arrancar
   leerInventario().then(p => console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`));
 });
