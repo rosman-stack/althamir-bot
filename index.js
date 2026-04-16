@@ -125,19 +125,31 @@ app.get('/webhook', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  res.sendStatus(200);
+  res.sendStatus(200); // Responder rápido a Chatwoot para evitar reintentos
+
   try {
-    // ── Asesor responde desde Chatwoot ──
     const cw = req.body;
+
+    // ── FILTRO PARA EVITAR DOBLE RESPUESTA ──
     if (cw.event === 'message_created' && cw.message_type === 'outgoing' && !cw.private) {
+      
+      // 1. Verificamos que el mensaje no venga de un sistema automático (opcional)
+      if (cw.sender?.type === 'bot') return;
+
       const telefono = cw.conversation?.meta?.sender?.phone_number?.replace('+', '');
       const contenido = cw.content;
+
+      // 2. IMPORTANTE: Chatwoot a veces envía el evento dos veces si no recibe el 200 OK rápido.
+      // Aquí podrías guardar el cw.id en una lista temporal (cache) para ignorarlo si se repite.
+      
       if (telefono && contenido) {
-        console.log(`[Chatwoot] Asesor responde a ${telefono}: ${contenido}`);
+        console.log(`[Chatwoot] Enviando respuesta única a ${telefono}`);
         await enviarMensaje(telefono, contenido);
       }
       return;
     }
+    
+    // ... resto de tu lógica para mensajes entrantes de WhatsApp
 
     // ── Mensajes entrantes de WhatsApp ──
     const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
