@@ -120,7 +120,7 @@ app.post('/webhook', async (req, res) => {
     }
 
     // Lógica de Noor (IA) - Groq
-    if (!conversaciones[telefono]) conversaciones[telefono] = [];
+    if (!conversaciones[telefono]) conversaciones[telefono] = [];f
     conversaciones[telefono].push({ role: 'user', content: texto });
 
     // (Aquí llamarías a tu función llamarGroq que ya tienes definida arriba)
@@ -132,4 +132,21 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Noor bot activo en puerto ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Noor bot activo en puerto ${PORT}`);
+  
+  leerInventario()
+    .then(p => {
+      console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`);
+    })
+    .catch(err => {
+      console.error('[Error Inicio] No se pudo cargar el inventario:', err.message);
+    });
+
+  
+  // ESTA ES LA LÍNEA CLAVE:
+  leerInventario()
+    .then(p => console.log(`[Sheets] ${p?.length || 0} productos activos cargados correctamente`))
+    .catch(err => console.error('[Error Sheets] No se pudo cargar el inventario inicial:', err.message));
+});
