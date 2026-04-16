@@ -5,7 +5,6 @@ const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN;
 const CHATWOOT_INBOX_ID = process.env.CHATWOOT_INBOX_ID;
 const CHATWOOT_ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID;
 
-// Mapa para guardar contact_id y conversation_id por teléfono
 const chatwootSesiones = {};
 
 async function api(method, path, data = null) {
@@ -21,29 +20,24 @@ async function api(method, path, data = null) {
   return res.data;
 }
 
-async function obtenerOCrearContacto(telefono, nombre = null) {
-  // Buscar si ya existe
+async function obtenerOCrearContacto(telefono) {
   try {
     const busqueda = await api('get', `/contacts/search?q=${telefono}`);
-    if (busqueda.payload?.length > 0) {
-      return busqueda.payload[0].id;
-    }
+    if (busqueda.payload?.length > 0) return busqueda.payload[0].id;
   } catch (e) {}
 
-  // Crear contacto nuevo
   const contacto = await api('post', '/contacts', {
     phone_number: `+${telefono}`,
-    name: nombre || `+${telefono}`,
+    name: `+${telefono}`,
     inbox_id: parseInt(CHATWOOT_INBOX_ID)
   });
   return contacto.id;
 }
 
-async function crearConversacion(contactId, telefono) {
+async function crearConversacion(contactId) {
   const conv = await api('post', '/conversations', {
     contact_id: contactId,
-    inbox_id: parseInt(CHATWOOT_INBOX_ID),
-    additional_attributes: { phone: telefono }
+    inbox_id: parseInt(CHATWOOT_INBOX_ID)
   });
   return conv.id;
 }
@@ -51,39 +45,34 @@ async function crearConversacion(contactId, telefono) {
 async function enviarMensajeChatwoot(conversationId, mensaje, tipo = 'incoming') {
   await api('post', `/conversations/${conversationId}/messages`, {
     content: mensaje,
-    message_type: tipo,  // 'incoming' = del cliente, 'outgoing' = del asesor
+    message_type: tipo,
     private: false
   });
 }
 
 async function transferirAChatwoot(telefono, mensajeCliente, historialPrevio = []) {
   try {
-    // Obtener o crear contacto
     let contactId = chatwootSesiones[telefono]?.contactId;
     if (!contactId) {
       contactId = await obtenerOCrearContacto(telefono);
     }
 
-    // Obtener o crear conversación
     let conversationId = chatwootSesiones[telefono]?.conversationId;
     if (!conversationId) {
-      conversationId = await crearConversacion(contactId, telefono);
+      conversationId = await crearConversacion(contactId);
       chatwootSesiones[telefono] = { contactId, conversationId };
+
+      // Enviar historial previo como contexto (últimos 6 mensajes)
+      if (historialPrevio.length > 0) {
+        const resumen = historialPrevio
+          .slice(-6)
+          .map(m => `${m.role === 'user' ? '👤 Cliente' : '🤖 Noor'}: ${m.content}`)
+          .join('\n');
+        await enviarMensajeChatwoot(conversationId, `📋 *Contexto previo:*\n${resumen}`, 'incoming');
+      }
     }
 
-    // Enviar historial previo resumido si es nueva conversación
-    if (historialPrevio.length > 0 && !chatwootSesiones[telefono]?.historialEnviado) {
-      const resumen = historialPrevio
-        .slice(-6) // últimos 6 mensajes
-        .map(m => `${m.role === 'user' ? '👤 Cliente' : '🤖 Noor'}: ${m.content}`)
-        .join('\n');
-      await enviarMensajeChatwoot(conversationId, `📋 *Contexto de la conversación:*\n${resumen}`, 'activity');
-      chatwootSesiones[telefono].historialEnviado = true;
-    }
-
-    // Enviar el mensaje actual del cliente
     await enviarMensajeChatwoot(conversationId, mensajeCliente, 'incoming');
-
     console.log(`[Chatwoot] Conversación ${conversationId} activa para ${telefono}`);
     return conversationId;
 
@@ -91,12 +80,6 @@ async function transferirAChatwoot(telefono, mensajeCliente, historialPrevio = [
     console.error('[Chatwoot] Error transfiriendo:', err.response?.data || err.message);
     return null;
   }
-}
-
-async function enviarMensajeDeAsesor(telefono, mensaje) {
-  const conversationId = chatwootSesiones[telefono]?.conversationId;
-  if (!conversationId) return;
-  await enviarMensajeChatwoot(conversationId, mensaje, 'outgoing');
 }
 
 async function cerrarConversacion(telefono) {
@@ -107,18 +90,8 @@ async function cerrarConversacion(telefono) {
     delete chatwootSesiones[telefono];
     console.log(`[Chatwoot] Conversación ${conversationId} cerrada`);
   } catch (e) {
-    console.error('[Chatwoot] Error cerrando conversación:', e.message);
+    console.error('[Chatwoot] Error cerrando:', e.message);
   }
 }
 
-function getConversationId(telefono) {
-  return chatwootSesiones[telefono]?.conversationId || null;
-}
-
-module.exports = {
-  transferirAChatwoot,
-  enviarMensajeDeAsesor,
-  cerrarConversacion,
-  getConversationId,
-  chatwootSesiones
-};
+module.exports = { transferirAChatwoot, cerrarConversacion, chatwootSesiones };
