@@ -1,37 +1,44 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { leerInventario, formatearCatalogo } = require('./sheets');
-const {
-  transferirAChatwoot,
-  cerrarConversacion,
-  chatwootSesiones
-} = require('./chatwoot');
-
 const app = express();
 app.use(express.json());
+
+// ═══════════════════════════════════════
+//  NOOR — BOT DE WHATSAPP ALTHAMIR
+// ═══════════════════════════════════════
 
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
-const NTFY_TOPIC      = process.env.NTFY_TOPIC;
+const ADMIN_PHONE     = process.env.ADMIN_PHONE; // Número personal del asesor
 
+// Historial de conversaciones por usuario
 const conversaciones = {};
+
+// Clientes esperando asesor (para no notificar múltiples veces)
 const esperandoAsesor = new Set();
 
-const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes.
+// Sistema de Noor con conocimiento completo de Althamir
+const NOOR_SYSTEM = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes.
 
 SOBRE ALTHAMIR:
 - Vendemos decants y perfumes completos sellados de perfumería árabe auténtica
 - Guatemala, envíos a todo el país
-- Catálogo completo con fotos: althamir.gt
+- Catálogo completo: althamir.gt
 - Pedidos y consultas: este mismo WhatsApp
 
-QUÉ ES UN DECANT:
+¿QUÉ ES UN DECANT?
 Un decant es una muestra de perfume original transferida directamente de la botella sellada a un frasco pequeño (5ml o 10ml). Es 100% auténtico, ideal para probar una fragancia antes de comprar la botella completa o para llevar de viaje.
 
-{{CATALOGO}}
+CATÁLOGO CON PRECIOS:
+LATTAFA: Yara Moi (5ml Q40 · 10ml Q65) · Yara Rosa (5ml Q40 · 10ml Q65) · Yara Tous (5ml Q40 · 10ml Q65) · Asad (5ml Q45 · 10ml Q75) · Ra'ed Luxe (5ml Q35 · 10ml Q60) · Emeer (5ml Q50 · 10ml Q80) · Ramz Lattafa (5ml Q40 · 10ml Q60) · Bade'e Al Oud Amethyst (5ml Q40 · 10ml Q70) · Nebras (5ml Q45 · 10ml Q75) · Fakhar Black/Gold/Rose (5ml Q40 · 10ml Q70) · Najdia Intense (5ml Q40 · 10ml Q70) · Ejaazi (5ml Q40 · 10ml Q70) · Ajwad (5ml Q40 · 10ml Q70)
+ARMAF ODYSSEY: Mandarin Sky (5ml Q40 · 10ml Q70) · Odyssey Limoni (5ml Q40 · 10ml Q70)
+AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
+EMPER: Phantom My Hero (5ml Q50 · 10ml Q80)
+RAYHAAN: Rayhaan Elixir (5ml Q50 · 10ml Q80)
+Otras marcas: Maison Alhambra, Afnan, Bharara, French Avenue
 
 ENVÍOS: Ciudad de Guatemala entrega rápida. Interior del país coordinamos con transportistas.
 
@@ -41,28 +48,13 @@ REGLAS IMPORTANTES:
 - Para pedidos, dile al cliente que un asesor le va a confirmar los detalles
 - Si no sabes algo, di que un asesor le ayudará enseguida
 - Respuestas cortas y directas, máximo 4 líneas
-- Usa emojis con moderación
+- Usa emojis con moderación: 🖤 ✨ 🌙 🕌
 - Nunca inventes productos ni precios fuera del catálogo
-- Si un producto NO aparece en el catálogo, indica que no está disponible actualmente
 - Siempre ofrece recomendar una fragancia si el cliente no sabe qué elegir
-- Si alguien pregunta qué recomiendas, pregunta: prefiere floral, amaderado, cítrico o especiado, uso diario u ocasión especial
+- Si alguien pregunta qué recomiendas, pregunta: ¿prefieres floral, amaderado, cítrico o especiado? ¿uso diario u ocasión especial?
 - Usa lenguaje neutro al dirigirte al cliente. Nunca asumas género.`;
 
-const CATALOGO_FALLBACK = `CATÁLOGO (puede no estar actualizado):
-LATTAFA: Yara Moi (5ml Q40 · 10ml Q65) · Yara Rosa (5ml Q40 · 10ml Q65) · Asad (5ml Q45 · 10ml Q75) · Ra'ed Luxe (5ml Q35 · 10ml Q60)
-AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
-Para catálogo completo y actualizado visita althamir.gt`;
-
-async function getNoorSystem() {
-  try {
-    const productos = await leerInventario();
-    const catalogo = formatearCatalogo(productos);
-    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo || CATALOGO_FALLBACK);
-  } catch (err) {
-    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', CATALOGO_FALLBACK);
-  }
-}
-
+// Obtener saludo según hora Guatemala (UTC-6)
 function getSaludo() {
   const hora = new Date(Date.now() - 6 * 60 * 60 * 1000).getUTCHours();
   if (hora >= 5 && hora < 12) return 'buenos días';
@@ -70,160 +62,195 @@ function getSaludo() {
   return 'buenas noches';
 }
 
+// Detectar si es una orden desde la web
 function esOrdenWeb(texto) {
   return texto.includes('NUEVA ORDEN ALTHAMIR') || texto.includes('ALT-');
 }
 
+// Detectar si el cliente quiere hablar con asesor
 function quiereAsesor(texto) {
   const t = texto.toLowerCase();
   return t.includes('asesor') || t.includes('persona') || t.includes('humano') ||
-         t.includes('agente') || t.includes('hablar con') || t.includes('vendedor') ||
-         t.includes('pedido') || t.includes('confirmar') || t.includes('ordenar');
+         t.includes('agente') || t.includes('hablar con') || t.includes('vendedor');
 }
 
+// Enviar mensaje de WhatsApp
 async function enviarMensaje(telefono, mensaje) {
   try {
     await axios.post(
       `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
-      { messaging_product: 'whatsapp', to: telefono, type: 'text', text: { body: mensaje } },
-      { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
+      {
+        messaging_product: 'whatsapp',
+        to: telefono,
+        type: 'text',
+        text: { body: mensaje }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      }
     );
   } catch (err) {
     console.error('Error enviando mensaje:', err.response?.data || err.message);
   }
 }
 
+// Notificar al admin (número personal)
 async function notificarAdmin(tipo, telefono, mensaje) {
-  if (!NTFY_TOPIC) return;
-  const titulo = tipo === 'asesor' ? 'Asesor requerido - Althamir' : 'Nueva orden - Althamir';
-  const cuerpo = `Cliente: +${telefono}\n${mensaje}`;
-  try {
-    await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
-      headers: { 'Title': titulo, 'Priority': 'high', 'Content-Type': 'text/plain' }
-    });
-  } catch(e) {
-    console.error('Error notificando admin:', e.message);
+  if (!ADMIN_PHONE) return;
+
+  let texto = '';
+
+  if (tipo === 'asesor') {
+    texto = `🔔 *ALTHAMIR — Asesor requerido*\n\nCliente: +${telefono}\nMensaje: "${mensaje}"\n\nResponde en: business.whatsapp.com 🖤`;
+  } else if (tipo === 'orden') {
+    texto = `📦 *ALTHAMIR — Nueva orden recibida*\n\nCliente: +${telefono}\nDetalle: "${mensaje}"\n\nConfirma en: business.whatsapp.com 🖤`;
   }
+
+  await enviarMensaje(ADMIN_PHONE, texto);
+  console.log(`🔔 Admin notificado — tipo: ${tipo}, cliente: ${telefono}`);
 }
 
+// Llamar a Groq
 async function llamarGroq(historial) {
-  const systemPrompt = await getNoorSystem();
   const res = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
     {
       model: 'llama-3.1-8b-instant',
-      messages: [{ role: 'system', content: systemPrompt }, ...historial],
+      messages: [
+        { role: 'system', content: NOOR_SYSTEM },
+        ...historial
+      ],
       max_tokens: 350,
       temperature: 0.7
     },
-    { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
+    {
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
   );
   return res.data.choices[0].message.content;
 }
 
-// ─── Webhook ────────────────────────────────────────────────────────────────
-
+// ═══ WEBHOOK VERIFICACIÓN ═══
 app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
+  const mode      = req.query['hub.mode'];
+  const token     = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
+
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('Webhook verificado');
+    console.log('Webhook verificado ✅');
     res.status(200).send(challenge);
   } else {
     res.sendStatus(403);
   }
 });
 
+// ═══ WEBHOOK MENSAJES ENTRANTES ═══
 app.post('/webhook', async (req, res) => {
-  res.sendStatus(200);
-  try {
-    // ── Asesor responde desde Chatwoot ──
-    const cw = req.body;
-    if (cw.event === 'message_created' && cw.message_type === 'outgoing' && !cw.private) {
-      const telefono = cw.conversation?.meta?.sender?.phone_number?.replace('+', '');
-      const contenido = cw.content;
-      if (telefono && contenido) {
-        console.log(`[Chatwoot] Asesor responde a ${telefono}: ${contenido}`);
-        await enviarMensaje(telefono, contenido);
-      }
-      return;
-    }
+  res.sendStatus(200); // Responder rápido a Meta
 
-    // ── Mensajes entrantes de WhatsApp ──
-    const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  try {
+    const entry   = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value   = changes?.value;
+    const mensaje = value?.messages?.[0];
+
     if (!mensaje || mensaje.type !== 'text') return;
 
     const telefono = mensaje.from;
-    const texto = mensaje.text.body.trim();
-    console.log(`Mensaje de ${telefono}: ${texto}`);
+    const texto    = mensaje.text.body.trim();
 
+    console.log(`📩 Mensaje de ${telefono}: ${texto}`);
+
+    // Si es una orden de la web
     if (esOrdenWeb(texto)) {
-      await enviarMensaje(telefono, `Orden recibida. Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
+      const respuesta = `✅ *¡Orden recibida!*\n\nGracias por tu pedido 🖤 Un asesor de Althamir te contactará en breve para confirmar los detalles y coordinar la entrega.\n\n_Tiempo de respuesta: menos de 1 hora en horario de atención (Lun-Sáb 9am-8pm)_`;
+      await enviarMensaje(telefono, respuesta);
       await notificarAdmin('orden', telefono, texto);
       return;
     }
 
-    // Si ya está esperando asesor, reenviar mensaje a Chatwoot
-    if (esperandoAsesor.has(telefono)) {
-      await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
-      console.log(`[Chatwoot] Mensaje de ${telefono} reenviado al panel`);
-      return;
-    }
-
+    // Si quiere hablar con asesor humano
     if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
-      esperandoAsesor.add(telefono);
-      await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
-      await notificarAdmin('asesor', telefono, texto);
+      const respuesta = `Claro, con gusto te comunico con un asesor 🖤\n\nEn un momento alguien del equipo Althamir estará contigo. Horario de atención: Lun-Sáb 9am-8pm 🌙`;
+      await enviarMensaje(telefono, respuesta);
+
+      // Notificar al admin solo si no está ya esperando asesor
+      if (!esperandoAsesor.has(telefono)) {
+        esperandoAsesor.add(telefono);
+        await notificarAdmin('asesor', telefono, texto);
+      }
       return;
     }
 
-    if (!conversaciones[telefono]) conversaciones[telefono] = [];
-    const esPrimerMensaje = conversaciones[telefono].length === 0;
-    conversaciones[telefono].push({ role: 'user', content: texto });
-    if (conversaciones[telefono].length > 20) conversaciones[telefono] = conversaciones[telefono].slice(-20);
-
-    let historial = [...conversaciones[telefono]];
-    if (esPrimerMensaje) {
-      historial[0] = { role: 'user', content: `(El cliente escribe a las ${getSaludo()}, salúdale apropiadamente.) ${texto}` };
+    // Si el cliente ya está esperando asesor, no responde Noor
+    if (esperandoAsesor.has(telefono)) {
+      console.log(`⏳ Cliente ${telefono} esperando asesor — Noor en pausa`);
+      return;
     }
 
-    const respuesta = await llamarGroq(historial);
+    // Inicializar historial si es nuevo usuario
+    if (!conversaciones[telefono]) {
+      conversaciones[telefono] = [];
+    }
+
+    const esPrimerMensaje = conversaciones[telefono].length === 0;
+
+    // Agregar mensaje del usuario al historial
+    conversaciones[telefono].push({ role: 'user', content: texto });
+
+    // Limitar historial a últimas 20 interacciones
+    if (conversaciones[telefono].length > 20) {
+      conversaciones[telefono] = conversaciones[telefono].slice(-20);
+    }
+
+    // Si es primer mensaje, inyectar contexto de hora
+    let historialConContexto = [...conversaciones[telefono]];
+    if (esPrimerMensaje) {
+      historialConContexto[0] = {
+        role: 'user',
+        content: `(El cliente escribe a las ${getSaludo()}, salúdale apropiadamente.) ${texto}`
+      };
+    }
+
+    // Obtener respuesta de Groq
+    const respuesta = await llamarGroq(historialConContexto);
+
+    // Guardar respuesta en historial
     conversaciones[telefono].push({ role: 'assistant', content: respuesta });
+
+    // Enviar respuesta
     await enviarMensaje(telefono, respuesta);
-    console.log(`Respuesta enviada a ${telefono}`);
+    console.log(`✅ Respuesta enviada a ${telefono}`);
 
   } catch (error) {
     console.error('Error procesando mensaje:', error.message);
   }
 });
 
-// ─── Rutas de administración ─────────────────────────────────────────────────
-
+// ═══ LIBERAR CLIENTE (asesor terminó) ═══
+// Llama a este endpoint para que Noor retome el chat
+// GET /liberar?telefono=50240880292
 app.get('/liberar', (req, res) => {
   const telefono = req.query.telefono;
   if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
   esperandoAsesor.delete(telefono);
-  conversaciones[telefono] = [];
-  cerrarConversacion(telefono);
-  console.log(`Cliente ${telefono} liberado — Noor retoma el chat`);
+  conversaciones[telefono] = []; // Reinicia historial
+  console.log(`✅ Cliente ${telefono} liberado — Noor retoma el chat`);
   res.json({ success: true, mensaje: `Noor retoma el chat con ${telefono}` });
 });
 
-app.get('/reload-inventario', async (req, res) => {
-  try {
-    const productos = await leerInventario();
-    res.json({ success: true, productos_activos: productos?.length || 0 });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// ═══ RUTA DE SALUD ═══
+app.get('/', (req, res) => {
+  res.send('🖤 Noor - Bot de WhatsApp Althamir funcionando');
 });
-
-app.get('/', (req, res) => res.send('Noor - Bot de WhatsApp Althamir funcionando'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Noor bot activo en puerto ${PORT}`);
-  leerInventario().then(p => console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`));
+  console.log(`🚀 Noor bot activo en puerto ${PORT}`);
 });
