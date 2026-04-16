@@ -143,6 +143,7 @@ app.listen(PORT, () => {
     .catch(err => {
       console.error('[Error Inicio] No se pudo cargar el inventario:', err.message);
     });
+});
 
   
   // ESTA ES LA LÍNEA CLAVE:
