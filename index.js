@@ -16,30 +16,51 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
 
-// --- MEMORIA PARA EVITAR DUPLICADOS ---
 const mensajesProcesados = new Set();
 const conversaciones = {};
 const esperandoAsesor = new Set();
 
+const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR. Althamir es una empresa de perfumería árabe auténtica en Guatemala. Tu personalidad es elegante, cálida y apasionada.
+- Vendemos decants (5ml y 10ml) y perfumes sellados.
+- Web: althamirgt.com
+- Si el cliente quiere comprar o hablar con alguien, usa la palabra 'asesor'.
+{{CATALOGO}}
+Respuestas cortas (máximo 4 líneas).`;
+
 // --- FUNCIONES DE APOYO ---
 
+async function getNoorSystem() {
+  try {
+    const productos = await leerInventario();
+    const catalogo = formatearCatalogo(productos);
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo);
+  } catch (err) {
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', 'Catálogo disponible en althamirgt.com');
+  }
+}
+
+async function llamarGroq(historial) {
+  const systemPrompt = await getNoorSystem();
+  const res = await axios.post(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'system', content: systemPrompt }, ...historial],
+      max_tokens: 350,
+      temperature: 0.7
+    },
+    { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
+  );
+  return res.data.choices[0].message.content;
+}
+
 function esOrdenWeb(texto) {
-  const t = texto.toUpperCase();
-  return t.includes('NUEVA ORDEN ALTHAMIR') || t.includes('ALT-');
+  return texto.toUpperCase().includes('ALT-');
 }
 
 function quiereAsesor(texto) {
   const t = texto.toLowerCase();
-  return t.includes('asesor') || t.includes('persona') || t.includes('humano') ||
-         t.includes('agente') || t.includes('hablar con') || t.includes('vendedor') ||
-         t.includes('pedido') || t.includes('confirmar') || t.includes('ordenar');
-}
-
-function getSaludo() {
-  const hora = new Date(Date.now() - 6 * 60 * 60 * 1000).getUTCHours();
-  if (hora >= 5 && hora < 12) return 'buenos días';
-  if (hora >= 12 && hora < 19) return 'buenas tardes';
-  return 'buenas noches';
+  return t.includes('asesor') || t.includes('humano') || t.includes('pedido') || t.includes('comprar');
 }
 
 async function enviarMensaje(telefono, mensaje) {
@@ -49,58 +70,41 @@ async function enviarMensaje(telefono, mensaje) {
       { messaging_product: 'whatsapp', to: telefono, type: 'text', text: { body: mensaje } },
       { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
     );
-  } catch (err) {
-    console.error('Error enviando a WhatsApp:', err.response?.data || err.message);
-  }
+  } catch (err) { console.error('Error WhatsApp:', err.message); }
 }
 
 // ─── WEBHOOK ────────────────────────────────────────────────────────────────
 
 app.get('/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    res.status(200).send(challenge);
-  } else {
-    res.sendStatus(403);
-  }
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) res.send(req.query['hub.challenge']);
+  else res.sendStatus(403);
 });
 
 app.post('/webhook', async (req, res) => {
-  res.sendStatus(200); // Respuesta inmediata
-
+  res.sendStatus(200);
   try {
     const cw = req.body;
 
-    // 1. SI EL MENSAJE VIENE DE CHATWOOT (Asesor responde)
+    // RESPUESTA DEL ASESOR (CHATWOOT)
     if (cw.event === 'message_created' && cw.message_type === 'outgoing' && !cw.private) {
-      const messageId = cw.id;
-      if (mensajesProcesados.has(messageId)) return;
-
-      mensajesProcesados.add(messageId);
-      setTimeout(() => mensajesProcesados.delete(messageId), 10000);
+      if (mensajesProcesados.has(cw.id)) return;
+      mensajesProcesados.add(cw.id);
+      setTimeout(() => mensajesProcesados.delete(cw.id), 10000);
 
       const telefono = cw.conversation?.meta?.sender?.phone_number?.replace('+', '');
-      const contenido = cw.content;
-
-      if (telefono && contenido) {
-        console.log(`[Chatwoot] Respuesta única enviada a ${telefono}`);
-        await enviarMensaje(telefono, contenido);
-      }
+      if (telefono && cw.content) await enviarMensaje(telefono, cw.content);
       return;
     }
 
-    // 2. SI EL MENSAJE VIENE DE WHATSAPP (Cliente escribe)
+    // MENSAJE DEL CLIENTE (WHATSAPP)
     const entry = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     if (!entry || entry.type !== 'text') return;
 
     const telefono = entry.from;
     const texto = entry.text.body.trim();
-    console.log(`Mensaje de ${telefono}: ${texto}`);
 
     if (esOrdenWeb(texto)) {
-      await enviarMensaje(telefono, `¡Gracias por tu orden en Althamir! 🏛️ Un asesor la confirmará en breve.`);
+      await enviarMensaje(telefono, `¡Orden recibida! 🏛️ Un asesor la confirmará pronto.`);
       return;
     }
 
@@ -110,37 +114,28 @@ app.post('/webhook', async (req, res) => {
     }
 
     if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, `Con gusto. Te comunico con un asesor de Althamir. Horario: Lun-Sab 9am-8pm.`);
+      await enviarMensaje(telefono, `Te comunico con un asesor de Althamir. Un momento...`);
       esperandoAsesor.add(telefono);
       await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
       return;
     }
 
-    // Lógica de Noor (IA)
+    // IA NOOR
     if (!conversaciones[telefono]) conversaciones[telefono] = [];
     conversaciones[telefono].push({ role: 'user', content: texto });
+    if (conversaciones[telefono].length > 10) conversaciones[telefono].shift();
 
-    // Aquí llamarías a llamarGroq como lo tenías antes
-    // const respuesta = await llamarGroq(conversaciones[telefono]);
-    // await enviarMensaje(telefono, respuesta);
+    const respuesta = await llamarGroq(conversaciones[telefono]);
+    conversaciones[telefono].push({ role: 'assistant', content: respuesta });
+    await enviarMensaje(telefono, respuesta);
 
-  } catch (error) {
-    console.error('Error procesando webhook:', error.stack);
-  }
+  } catch (error) { console.error('Error Webhook:', error.message); }
 });
 
-// ─── INICIO DEL SERVIDOR ─────────────────────────────────────────────────────
+// ─── INICIO ──────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 8080;
-
 app.listen(PORT, () => {
   console.log(`Noor bot activo en puerto ${PORT}`);
-  
-  leerInventario()
-    .then(p => {
-      console.log(`[Sheets] ${p?.length || 0} productos cargados correctamente para Althamir`);
-    })
-    .catch(err => {
-      console.error('[Error Sheets] No se pudo cargar el inventario:', err.message);
-    });
+  leerInventario().then(p => console.log(`[Sheets] ${p?.length || 0} productos listos.`));
 });
