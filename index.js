@@ -21,7 +21,7 @@ const mensajesProcesados = new Set();
 const conversaciones = {};
 const esperandoAsesor = new Set();
 
-// --- FUNCIONES DE APOYO (Definidas antes del Webhook) ---
+// --- FUNCIONES DE APOYO ---
 
 function esOrdenWeb(texto) {
   const t = texto.toUpperCase();
@@ -54,7 +54,7 @@ async function enviarMensaje(telefono, mensaje) {
   }
 }
 
-// ─── WEBHOOK (LOGICA REVISADA) ──────────────────────────────────────────────
+// ─── WEBHOOK ────────────────────────────────────────────────────────────────
 
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -68,7 +68,7 @@ app.get('/webhook', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  res.sendStatus(200); // Respuesta inmediata para evitar reintentos
+  res.sendStatus(200); // Respuesta inmediata
 
   try {
     const cw = req.body;
@@ -99,19 +99,16 @@ app.post('/webhook', async (req, res) => {
     const texto = entry.text.body.trim();
     console.log(`Mensaje de ${telefono}: ${texto}`);
 
-    // Validar si es una orden automática del sitio web
     if (esOrdenWeb(texto)) {
       await enviarMensaje(telefono, `¡Gracias por tu orden en Althamir! 🏛️ Un asesor la confirmará en breve.`);
       return;
     }
 
-    // Si el cliente ya está en el panel de Chatwoot (esperando asesor)
     if (esperandoAsesor.has(telefono)) {
       await transferirAChatwoot(telefono, texto, conversaciones[telefono] || []);
       return;
     }
 
-    // Si el cliente pide hablar con alguien
     if (quiereAsesor(texto)) {
       await enviarMensaje(telefono, `Con gusto. Te comunico con un asesor de Althamir. Horario: Lun-Sab 9am-8pm.`);
       esperandoAsesor.add(telefono);
@@ -119,17 +116,20 @@ app.post('/webhook', async (req, res) => {
       return;
     }
 
-    // Lógica de Noor (IA) - Groq
-    if (!conversaciones[telefono]) conversaciones[telefono] = [];f
+    // Lógica de Noor (IA)
+    if (!conversaciones[telefono]) conversaciones[telefono] = [];
     conversaciones[telefono].push({ role: 'user', content: texto });
 
-    // (Aquí llamarías a tu función llamarGroq que ya tienes definida arriba)
-    // ... lógica de respuesta de Noor ...
+    // Aquí llamarías a llamarGroq como lo tenías antes
+    // const respuesta = await llamarGroq(conversaciones[telefono]);
+    // await enviarMensaje(telefono, respuesta);
 
   } catch (error) {
     console.error('Error procesando webhook:', error.stack);
   }
 });
+
+// ─── INICIO DEL SERVIDOR ─────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 8080;
 
@@ -138,15 +138,9 @@ app.listen(PORT, () => {
   
   leerInventario()
     .then(p => {
-      console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`);
+      console.log(`[Sheets] ${p?.length || 0} productos cargados correctamente para Althamir`);
     })
     .catch(err => {
-      console.error('[Error Inicio] No se pudo cargar el inventario:', err.message);
+      console.error('[Error Sheets] No se pudo cargar el inventario:', err.message);
     });
-
-  
-  // ESTA ES LA LÍNEA CLAVE:
-  leerInventario()
-    .then(p => console.log(`[Sheets] ${p?.length || 0} productos activos cargados correctamente`))
-    .catch(err => console.error('[Error Sheets] No se pudo cargar el inventario inicial:', err.message));
 });
