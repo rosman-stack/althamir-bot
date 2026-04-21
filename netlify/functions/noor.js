@@ -1,19 +1,22 @@
 // netlify/functions/noor.js
+const https = require('https');
+
 exports.handler = async (event) => {
-  // 1. Cabeceras CORS obligatorias para que Netlify permita la comunicación
+  // Headers CORS para permitir llamadas desde el navegador
   const headers = {
+    'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  // Respuesta rápida a solicitudes OPTIONS (Preflight)
+  // Preflight CORS
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Método no permitido' }) };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
   const apiKey = process.env.GROQ_API_KEY;
@@ -21,31 +24,45 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'API key no configurada' }) };
   }
 
+  let body;
   try {
-    const body = JSON.parse(event.body);
-    
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    body = JSON.parse(event.body);
+  } catch(e) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Body inválido' }) };
+  }
+
+  const payload = JSON.stringify({
+    model: 'llama-3.1-8b-instant',
+    max_tokens: 400,
+    temperature: 0.7,
+    messages: body.messages
+  });
+
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.groq.com',
+      path: '/openai/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        max_tokens: 400,
-        temperature: 0.7,
-        messages: body.messages
-      })
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        resolve({ statusCode: res.statusCode, headers, body: data });
+      });
     });
 
-    const data = await groqRes.json();
+    req.on('error', (err) => {
+      resolve({ statusCode: 500, headers, body: JSON.stringify({ error: err.message }) });
+    });
 
-    return {
-      statusCode: groqRes.status,
-      headers, // <-- No olvides pasar las cabeceras aquí también
-      body: JSON.stringify(data)
-    };
-  } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
-  }
+    req.write(payload);
+    req.end();
+  });
 };
