@@ -2044,6 +2044,10 @@ function showCartFab() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+// ─── Estado de inventario (debe declararse primero) ───
+let inventarioSheets = {};
+let catalogoSheets = null;
+
 const WA_NUM = '50252547623';
 function waLink(name) {
   const msg = encodeURIComponent('Hola Althamir 👋, me interesa conocer el precio de botella completa de *' + name + '*. ¿Podrías ayudarme?');
@@ -2624,8 +2628,7 @@ updateCounter(totalCards, totalCards);
 const SHEETS_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
 const SHEETS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=0`;
 
-let inventarioSheets = {};
-let catalogoSheets = null;
+// inventarioSheets y catalogoSheets declarados al inicio del DOMContentLoaded
 
 // Normaliza nombres para comparación flexible (minúsculas, sin tildes, sin apóstrofes)
 function normalizarNombre(str) {
