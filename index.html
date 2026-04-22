@@ -1927,6 +1927,11 @@ body.light-mode body::before{opacity:0.15}
 <script>
 // ═══ FUNCIONES GLOBALES CRÍTICAS DEL CARRITO ═══
 // Estas DEBEN estar fuera del DOMContentLoaded para ser llamadas por onclick
+const noorGreeting = () => "¡Hola! Soy Noor, tu asistente de Althamir. ¿En qué puedo ayudarte hoy?";
+
+// Asegúrate de que estas líneas estén al principio de todo el JS
+let inventarioSheets = {};
+let catalogoSheets = null;
 
 let cart = (function() {
   try { const s = localStorage.getItem('althamir_cart'); return s ? JSON.parse(s) : []; } catch(e) { return []; }
@@ -2045,8 +2050,6 @@ function showCartFab() {
 
 document.addEventListener("DOMContentLoaded", function() {
 // ─── Estado de inventario (debe declararse primero) ───
-let inventarioSheets = {};
-let catalogoSheets = null;
 
 const WA_NUM = '50252547623';
 function waLink(name) {
