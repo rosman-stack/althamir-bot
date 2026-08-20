@@ -11,6 +11,22 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
 const NTFY_TOPIC      = process.env.NTFY_TOPIC;
+const ADMIN_TOKEN      = process.env.ADMIN_TOKEN;
+
+// Middleware simple para proteger rutas de administración con un token.
+// Uso: agregar ?token=TU_ADMIN_TOKEN a la URL, o header 'x-admin-token'.
+function requireAdminToken(req, res, next) {
+  if (!ADMIN_TOKEN) {
+    console.warn('[Seguridad] ADMIN_TOKEN no configurado — ruta de admin sin protección');
+    return res.status(500).json({ error: 'ADMIN_TOKEN no configurado en el servidor' });
+  }
+  const token = req.query.token || req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) {
+    console.warn(`[Seguridad] Intento de acceso no autorizado a ${req.path} desde IP ${req.ip}`);
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  next();
+}
 
 const conversaciones = {};
 const esperandoAsesor = new Set();
@@ -194,7 +210,7 @@ app.post('/webhook', async (req, res) => {
 
 // ─── Rutas de administración ─────────────────────────────────────────────────
 
-app.get('/liberar', (req, res) => {
+app.get('/liberar', requireAdminToken, (req, res) => {
   const telefono = req.query.telefono;
   if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
   esperandoAsesor.delete(telefono);
@@ -204,7 +220,7 @@ app.get('/liberar', (req, res) => {
 });
 
 // Endpoint para forzar recarga del inventario (útil después de editar el Sheet)
-app.get('/reload-inventario', async (req, res) => {
+app.get('/reload-inventario', requireAdminToken, async (req, res) => {
   try {
     const { leerInventario, formatearCatalogo } = require('./sheets');
     // Forzar recarga limpiando caché internamente llamando directo
