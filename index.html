@@ -2556,6 +2556,53 @@ const confirmOverlay = document.getElementById('confirmOverlay');
 const confirmSendBtn = document.getElementById('confirmSendBtn');
 const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 const confirmItemsEl = document.getElementById('confirmItems');
+  const confirmPayBtn = document.getElementById('confirmPayBtn');
+
+async function payWithCard() {
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+  const note = document.getElementById('cartNote').value.trim();
+
+  if (!name || !phone || !address) {
+    showToast('⚠️ Completa nombre, teléfono y dirección');
+    return;
+  }
+
+  confirmPayBtn.disabled = true;
+  confirmPayBtn.textContent = 'Redirigiendo a pago...';
+
+  try {
+    const res = await fetch('/.netlify/functions/recurrente-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cart: cart,
+        customer: { name, phone, address, note }
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.checkout_url) {
+      throw new Error(data.error || 'No se pudo iniciar el pago');
+    }
+
+    // Vaciamos el carrito antes de salir (igual que en el flujo de WhatsApp)
+    cart = [];
+    saveCart();
+    updateCartUI();
+
+    window.location.href = data.checkout_url;
+
+  } catch (err) {
+    showToast('⚠️ Error al iniciar el pago: ' + err.message);
+    confirmPayBtn.disabled = false;
+    confirmPayBtn.textContent = '💳 Pagar con tarjeta';
+  }
+}
+
+if (confirmPayBtn) confirmPayBtn.addEventListener('click', payWithCard);
 
 function showOrderConfirm() {
   const name = document.getElementById('custName').value.trim();
@@ -3089,6 +3136,9 @@ async function noorSend() {
       <button class="noor-send" id="noorSend" onclick="noorSend()">
         <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
       </button>
+          <button class="confirm-btn-wa" id="confirmPayBtn" style="background:#0d2416;margin-top:8px">
+      💳 Pagar con tarjeta
+    </button>
     </div>
     <div class="noor-disclaimer">✦ Asistente con IA · Althamir Perfumería Árabe ✦</div>
   </div>
