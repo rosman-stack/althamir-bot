@@ -2049,6 +2049,21 @@ function showCartFab() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+  // Detecta el regreso desde el checkout de Recurrente (pago con tarjeta)
+  // y muestra un aviso claro al cliente.
+  (function checkPagoRecurrente() {
+    const params = new URLSearchParams(window.location.search);
+    const pago = params.get('pago');
+    const orden = params.get('orden');
+    if (pago === 'exito') {
+      showToast(`✅ ¡Pago recibido! ${orden ? 'Orden ' + orden + '. ' : ''}Un asesor confirmará tu pedido en breve.`, 6000);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (pago === 'cancelado') {
+      showToast('El pago fue cancelado. Tu carrito sigue disponible si quieres intentar de nuevo.', 5000);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  })();
+
 // ─── Estado de inventario (debe declararse primero) ───
 
 const WA_NUM = '50252547623';
