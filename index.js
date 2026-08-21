@@ -12,6 +12,9 @@ const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
 const NTFY_TOPIC      = process.env.NTFY_TOPIC;
 const ADMIN_TOKEN      = process.env.ADMIN_TOKEN;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID  = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 
 // Middleware simple para proteger rutas de administración con un token.
 // Uso: agregar ?token=TU_ADMIN_TOKEN a la URL, o header 'x-admin-token'.
@@ -29,6 +32,9 @@ function requireAdminToken(req, res, next) {
 }
 
 const conversaciones = {};
+// Mapea el ID de cada mensaje enviado a Telegram -> teléfono del cliente,
+// para saber a quién reenviar cuando el asesor responde con "Reply" en Telegram.
+const telegramMsgToPhone = {};
 const esperandoAsesor = new Set();
 
 const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp — una perfumería árabe auténtica ubicada en GUATEMALA. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes, como una amiga experta que disfruta genuinamente recomendar el aroma perfecto.
@@ -118,15 +124,45 @@ async function enviarMensaje(telefono, mensaje) {
 }
 
 async function notificarAdmin(tipo, telefono, mensaje) {
-  if (!NTFY_TOPIC) return;
   const titulo = tipo === 'asesor' ? 'Asesor requerido - Althamir' : 'Nueva orden - Althamir';
   const cuerpo = `Cliente: +${telefono}\n${mensaje}`;
+
+  if (NTFY_TOPIC) {
+    try {
+      await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
+        headers: { 'Title': titulo, 'Priority': 'high', 'Content-Type': 'text/plain' }
+      });
+    } catch(e) {
+      console.error('Error notificando admin (ntfy):', e.message);
+    }
+  }
+
+  // Envía también a Telegram y guarda el message_id -> teléfono, para que si el
+  // asesor responde a ESE mensaje (con "Reply" en Telegram), sepamos a qué
+  // cliente reenviar la respuesta por WhatsApp.
+  const msgId = await telegramEnviarAdmin(`📣 *${titulo}*\n\n${cuerpo}\n\n_Responde a este mensaje para contestarle por WhatsApp._`, telefono);
+  return msgId;
+}
+
+// Reenvía un mensaje nuevo del cliente mientras está esperando asesor
+// (para que el asesor vea la conversación completa en Telegram, no solo el primero).
+async function reenviarMensajeClienteATelegram(telefono, texto) {
+  await telegramEnviarAdmin(`💬 +${telefono}: ${texto}\n\n_Responde a este mensaje para contestarle._`, telefono);
+}
+
+async function telegramEnviarAdmin(texto, telefono) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
   try {
-    await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
-      headers: { 'Title': titulo, 'Priority': 'high', 'Content-Type': 'text/plain' }
-    });
-  } catch(e) {
-    console.error('Error notificando admin:', e.message);
+    const res = await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      { chat_id: TELEGRAM_CHAT_ID, text: texto, parse_mode: 'Markdown' }
+    );
+    const msgId = res.data?.result?.message_id;
+    if (msgId) telegramMsgToPhone[msgId] = telefono;
+    return msgId;
+  } catch (e) {
+    console.error('Error notificando admin (Telegram):', e.response?.data || e.message);
+    return null;
   }
 }
 
@@ -185,6 +221,7 @@ app.post('/webhook', async (req, res) => {
 
     if (esperandoAsesor.has(telefono)) {
       console.log(`Cliente ${telefono} esperando asesor — Noor en pausa`);
+      await reenviarMensajeClienteATelegram(telefono, texto);
       return;
     }
 
@@ -228,6 +265,52 @@ app.get('/reload-inventario', requireAdminToken, async (req, res) => {
     res.json({ success: true, productos_activos: productos?.length || 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Puente Telegram → WhatsApp ──────────────────────────────────────────────
+// Cuando respondes ("Reply") a un mensaje de aviso en Telegram, este webhook
+// recibe la actualización, identifica al cliente original por el message_id
+// al que respondiste, y reenvía tu texto al cliente por WhatsApp.
+
+app.post('/telegram-webhook', async (req, res) => {
+  res.sendStatus(200); // Telegram solo necesita el 200 rápido, no espera contenido
+  try {
+    // Si configuraste el secret_token al registrar el webhook, lo validamos aquí
+    // para asegurarnos que la petición viene realmente de Telegram.
+    if (TELEGRAM_WEBHOOK_SECRET) {
+      const secretRecibido = req.headers['x-telegram-bot-api-secret-token'];
+      if (secretRecibido !== TELEGRAM_WEBHOOK_SECRET) {
+        console.warn('[Telegram] Webhook con secret inválido — descartado');
+        return;
+      }
+    }
+
+    const mensaje = req.body.message;
+    if (!mensaje || !mensaje.text) return;
+
+    // Solo procesamos si es una RESPUESTA (reply) a uno de nuestros avisos —
+    // así evitamos que cualquier mensaje suelto en el chat intente reenviarse.
+    const replyToId = mensaje.reply_to_message?.message_id;
+    if (!replyToId) {
+      await telegramEnviarAdmin('⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto.', null);
+      return;
+    }
+
+    const telefono = telegramMsgToPhone[replyToId];
+    if (!telefono) {
+      await telegramEnviarAdmin('⚠️ No encontré a qué cliente corresponde ese mensaje (puede ser muy antiguo).', null);
+      return;
+    }
+
+    await enviarMensaje(telefono, mensaje.text);
+    // Nota: NO liberamos automáticamente a Noor aquí — dejamos que tú decidas
+    // cuándo terminó la conversación usando /liberar?telefono=...&token=...
+    // (así evitamos que Noor y tú respondan al mismo tiempo a media conversación)
+    console.log(`[Telegram→WhatsApp] Respuesta del asesor reenviada a ${telefono}`);
+
+  } catch (error) {
+    console.error('[Telegram webhook] Error:', error.message);
   }
 });
 
