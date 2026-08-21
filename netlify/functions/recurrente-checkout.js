@@ -11,16 +11,39 @@
 
 const https = require('https');
 
+// Mismo limitador simple en memoria que en noor.js — frena spam de intentos
+// de checkout desde un mismo origen en poco tiempo.
+const MAX_REQUESTS_POR_MINUTO = 8;
+const registroPeticiones = new Map();
+
+function excedeLimite(ip) {
+  const ahora = Date.now();
+  const ventana = 60 * 1000;
+  const historial = (registroPeticiones.get(ip) || []).filter(t => ahora - t < ventana);
+  historial.push(ahora);
+  registroPeticiones.set(ip, historial);
+  if (registroPeticiones.size > 500) {
+    const primerKey = registroPeticiones.keys().next().value;
+    registroPeticiones.delete(primerKey);
+  }
+  return historial.length > MAX_REQUESTS_POR_MINUTO;
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': 'https://althamirgt.com',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
+  }
+
+  const ip = event.headers['x-nf-client-connection-ip'] || event.headers['client-ip'] || 'desconocida';
+  if (event.httpMethod === 'POST' && excedeLimite(ip)) {
+    return { statusCode: 429, headers, body: JSON.stringify({ error: 'Demasiados intentos, espera un momento.' }) };
   }
 
   if (event.httpMethod !== 'POST') {
