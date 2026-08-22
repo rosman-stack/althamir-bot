@@ -50,7 +50,7 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  const secretKey = process.env.RECURRENTE_SECRET_KEY;
+  const secretKey = process.env.sk_test_CT1IT73a3qDhopkKruuXpQMxjoT64veQnD2lGfAHabfCTAVoW1X0yyHN;
   if (!secretKey) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'RECURRENTE_SECRET_KEY no configurada en Netlify' }) };
   }
