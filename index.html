@@ -60,6 +60,13 @@
 <meta name="theme-color" content="#0d2416"/>
 <link rel="icon" type="image/png" href="https://res.cloudinary.com/dwnqasp3x/image/upload/w_32,h_32,c_fill,f_auto/imagen_001_q9ncz3.png"/>
 <link rel="apple-touch-icon" href="https://res.cloudinary.com/dwnqasp3x/image/upload/w_180,h_180,c_fill,f_auto/imagen_001_q9ncz3.png"/>
+
+<!-- PWA: permite "Agregar a pantalla de inicio" en Android/iOS -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#0a1810"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Althamir"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@200;300;400;500&display=swap&font-display=swap" rel="stylesheet"/>
@@ -1305,6 +1312,15 @@ body.light-mode body::before{opacity:0.15}
   }
   // Normal: ocultar 800ms después de que todo cargue
   window.addEventListener('load',function(){setTimeout(hideLoader,800);});
+
+  // Registro del Service Worker para la PWA (no bloquea la carga de la página)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.warn('No se pudo registrar el service worker:', err);
+      });
+    });
+  }
   // Fallback A: ocultar a los 2.5s pase lo que pase
   setTimeout(hideLoader,2500);
   // Fallback B: ocultar a los 5s (por si hay imágenes muy lentas)
@@ -2726,6 +2742,7 @@ function parsearCSV(texto) {
   const idxMl5        = encabezados.findIndex(h => h === '5ml' || h === '5' || h === 'precio5ml' || h === 'precio 5ml' || h === '5 ml' || (h.includes('5') && h.includes('ml')));
   const idxMl10       = encabezados.findIndex(h => h === '10ml' || h === '10' || h === 'precio10ml' || h === 'precio 10ml' || h === '10 ml' || (h.includes('10') && h.includes('ml')));
   const idxDisponible = encabezados.findIndex(h => h.includes('disponible') || h.includes('activo') || h.includes('active') || h === 'status');
+  const idxImagen     = encabezados.findIndex(h => h === 'imagen' || h === 'foto' || h.includes('imagen') || h.includes('image') || h.includes('foto'));
 
   const productos = [];
   for (let i = 1; i < lineas.length; i++) {
@@ -2739,7 +2756,8 @@ function parsearCSV(texto) {
       nombre,
       ml5: cols[idxMl5] || '',
       ml10: cols[idxMl10] || '',
-      disponible: estaActivo
+      disponible: estaActivo,
+      imagen: (idxImagen >= 0 ? (cols[idxImagen] || '') : '').trim()
     });
   }
   return productos;
@@ -2756,7 +2774,7 @@ async function cargarInventario() {
     productos.forEach(p => {
       // Guardar con clave normalizada (minúsculas, sin tildes) para comparación flexible
       const clave = normalizarNombre(p.nombre);
-      inventarioSheets[clave] = { disponible: p.disponible, marca: p.marca, precio5ml: p.ml5, precio10ml: p.ml10, nombreOriginal: p.nombre };
+      inventarioSheets[clave] = { disponible: p.disponible, marca: p.marca, precio5ml: p.ml5, precio10ml: p.ml10, nombreOriginal: p.nombre, imagen: p.imagen };
     });
 
     // Guardar catálogo para Noor (solo activos)
@@ -2765,6 +2783,7 @@ async function cargarInventario() {
 
     console.log('[Sheets] Inventario cargado:', productos.length, 'productos');
     aplicarDisponibilidad();
+    aplicarImagenesSheet();
     renderBestsellers();
     updateCounterDisponibles();
     // Re-renderizar precios desde Sheet
@@ -2796,6 +2815,37 @@ function generarTextoCatalogo(productos) {
     texto += '\n';
   }
   return texto;
+}
+
+function aplicarImagenesSheet() {
+  document.querySelectorAll('.product-card').forEach(card => {
+    const name = card.dataset.name || '';
+    const infoSheet = buscarEnInventario(name);
+    if (!infoSheet || !infoSheet.imagen) return; // sin URL en el Sheet, se queda la del HTML
+
+    const img = card.querySelector('.card-image img');
+    const placeholder = card.querySelector('.card-image .card-img-placeholder');
+    if (img) {
+      img.src = infoSheet.imagen;
+    } else if (placeholder) {
+      // Producto que no tenía foto en el HTML (mostraba el rombo ◈) — ahora sí tiene una
+      const nuevaImg = document.createElement('img');
+      nuevaImg.src = infoSheet.imagen;
+      nuevaImg.alt = name;
+      nuevaImg.loading = 'lazy';
+      placeholder.replaceWith(nuevaImg);
+    }
+
+    // También actualizamos la primera imagen del carrusel del modal (data-imgs),
+    // conservando las demás fotos que ya tenía el producto en el HTML, si las hay.
+    try {
+      const imgs = JSON.parse(card.dataset.imgs || '[]');
+      imgs[0] = infoSheet.imagen;
+      card.dataset.imgs = JSON.stringify(imgs);
+    } catch (e) {
+      card.dataset.imgs = JSON.stringify([infoSheet.imagen]);
+    }
+  });
 }
 
 function aplicarDisponibilidad() {
