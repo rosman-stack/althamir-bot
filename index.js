@@ -242,6 +242,19 @@ app.post('/webhook', async (req, res) => {
 
   } catch (error) {
     console.error('Error procesando mensaje:', error.message);
+    // Antes este catch solo logueaba — el cliente se quedaba sin ninguna
+    // respuesta. Ahora le avisamos algo razonable y te notificamos a ti
+    // por Telegram para que puedas atenderlo manualmente si hace falta.
+    try {
+      const mensajeOriginal = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const telefono = mensajeOriginal?.from;
+      if (telefono) {
+        await enviarMensaje(telefono, 'Disculpa, tuve un problema técnico procesando tu mensaje 🙏 Un asesor te va a escribir en breve, o puedes visitar althamirgt.com mientras tanto.');
+        await notificarAdmin('asesor', telefono, `[FALLO TÉCNICO] ${error.message} — mensaje original: "${mensajeOriginal?.text?.body || ''}"`);
+      }
+    } catch (errorFallback) {
+      console.error('Error enviando mensaje de respaldo:', errorFallback.message);
+    }
   }
 });
 
