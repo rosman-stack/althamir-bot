@@ -1336,6 +1336,11 @@ body.light-mode body::before{opacity:0.15}
       <input class="navbar-search" id="searchInput" type="text" placeholder="Buscar fragancia..." autocomplete="off"/>
       <span class="search-icon">🔍</span>
     </div>
+    <button class="navbar-ig" id="btnMisPedidos" onclick="abrirMisPedidos()" title="Mis pedidos" style="background:none;border:none;cursor:pointer;padding:0;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:block;">
+        <path d="M3 7l1-3h16l1 3M4 7h16v13a1 1 0 01-1 1H5a1 1 0 01-1-1V7zM9 11a3 3 0 006 0" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
     <a class="navbar-ig" href="https://www.instagram.com/althamir.gt" target="_blank" title="Instagram">
       <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px;height:20px;display:block;">
         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -1943,6 +1948,54 @@ body.light-mode body::before{opacity:0.15}
 <script>
 // ═══ FUNCIONES GLOBALES CRÍTICAS DEL CARRITO ═══
 // Estas DEBEN estar fuera del DOMContentLoaded para ser llamadas por onclick
+
+function abrirMisPedidos() {
+  document.getElementById('pedidosOverlay').classList.add('open');
+  document.getElementById('pedidosResultados').innerHTML = '';
+}
+
+async function buscarMisPedidos() {
+  const tel = document.getElementById('pedidosTelInput').value.trim();
+  const cont = document.getElementById('pedidosResultados');
+  if (!tel || tel.replace(/\D/g, '').length < 8) {
+    cont.innerHTML = '<p style="color:#c99;font-size:13px;">Escribe un teléfono válido</p>';
+    return;
+  }
+  cont.innerHTML = '<p style="font-size:13px;opacity:0.7;">Buscando...</p>';
+
+  try {
+    const res = await fetch(`https://althamir-bot.onrender.com/pedido/${encodeURIComponent(tel)}`);
+    const data = await res.json();
+    const lista = data.pedidos || [];
+
+    if (lista.length === 0) {
+      cont.innerHTML = '<p style="font-size:13px;opacity:0.7;">No encontramos pedidos con ese teléfono.</p>';
+      return;
+    }
+
+    const colorEstado = {
+      'Procesando': '#c9a15a', 'Pendiente de pago': '#c98a5a', 'Pagado': '#5ac9a1',
+      'Empacado': '#5a9ec9', 'En tránsito': '#5a7fc9', 'Entregado': '#5ac96b'
+    };
+
+    cont.innerHTML = lista.map(p => `
+      <div style="border:1px solid var(--gold-border,#333);border-radius:8px;padding:10px;margin-bottom:8px;text-align:left;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.7;">
+          <span>${p.orderId}</span><span>${new Date(p.fecha).toLocaleDateString('es-GT')}</span>
+        </div>
+        <div style="font-size:13px;margin:6px 0;">${p.productos}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;padding:3px 8px;border-radius:12px;background:${colorEstado[p.estado] || '#888'}22;color:${colorEstado[p.estado] || '#888'};">${p.estado}</span>
+          <strong>Q${parseFloat(p.total).toFixed(0)}</strong>
+        </div>
+        ${p.guia ? `<div style="font-size:12px;margin-top:6px;opacity:0.8;">📦 Guía de envío: ${p.guia}</div>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    cont.innerHTML = '<p style="color:#c99;font-size:13px;">No se pudo consultar en este momento, intenta de nuevo.</p>';
+  }
+}
+
 const noorGreeting = () => "¡Hola! Soy Noor, tu asistente de Althamir. ¿En qué puedo ayudarte hoy?";
 
 // Asegúrate de que estas líneas estén al principio de todo el JS
@@ -2327,6 +2380,23 @@ function sendOrderToWA() {
 
   const orderNum = 'ALT-' + Date.now().toString().slice(-5);
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
+
+  // Registramos el pedido en el Sheet ANTES de salir hacia WhatsApp.
+  // Usamos sendBeacon en vez de fetch normal porque la página está a punto
+  // de navegar a wa.me — un fetch normal se cancelaría a medio camino, pero
+  // sendBeacon está diseñado justo para esto: sigue enviándose aunque
+  // cambiemos de página de inmediato.
+  try {
+    const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
+    navigator.sendBeacon(
+      'https://althamir-bot.onrender.com/pedido',
+      new Blob([JSON.stringify(datosPedido)], { type: 'application/json' })
+    );
+  } catch (e) {
+    console.warn('No se pudo registrar el pedido en el historial:', e);
+    // No bloqueamos el envío por WhatsApp aunque esto falle
+  }
 
   let msg = `🖤 *NUEVA ORDEN ALTHAMIR*\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n`;
@@ -3221,6 +3291,19 @@ async function noorSend() {
       💳 Pagar con tarjeta
     </button>
     <button class="confirm-btn-cancel" id="confirmCancelBtn">Volver y editar</button>
+  </div>
+</div>
+
+<!-- MIS PEDIDOS -->
+<div class="confirm-overlay" id="pedidosOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon">📦</div>
+    <h3 class="confirm-title">Mis Pedidos</h3>
+    <p class="confirm-sub">Escribe el teléfono con el que hiciste tu pedido</p>
+    <input class="cart-input" id="pedidosTelInput" type="tel" placeholder="Tu número de teléfono" style="margin-bottom:10px;"/>
+    <button class="confirm-btn-wa" id="pedidosBuscarBtn" onclick="buscarMisPedidos()">Buscar</button>
+    <div id="pedidosResultados" style="margin-top:14px;max-height:320px;overflow-y:auto;"></div>
+    <button class="confirm-btn-cancel" onclick="document.getElementById('pedidosOverlay').classList.remove('open')">Cerrar</button>
   </div>
 </div>
 

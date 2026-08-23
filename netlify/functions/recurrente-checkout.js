@@ -11,6 +11,33 @@
 
 const https = require('https');
 
+const RENDER_API_URL = 'althamir-bot.onrender.com';
+
+// Registra el pedido en el Sheet de Pedidos (vía el bot en Render, que es
+// quien tiene las credenciales de Google) ANTES de mandar al cliente a pagar.
+function crearPedidoEnRender({ cliente, telefono, direccion, productos, total, canal, estado }) {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({ cliente, telefono, direccion, productos, total, canal, estado });
+    const req = https.request({
+      hostname: RENDER_API_URL,
+      path: '/pedido',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+    }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data).orderId || null); }
+        catch (e) { resolve(null); }
+      });
+    });
+    req.on('error', (e) => { console.error('[Pedido] Error registrando en Render:', e.message); resolve(null); });
+    req.write(payload);
+    req.end();
+  });
+}
+
+
 // Mismo limitador simple en memoria que en noor.js — frena spam de intentos
 // de checkout desde un mismo origen en poco tiempo.
 const MAX_REQUESTS_POR_MINUTO = 8;
@@ -80,26 +107,23 @@ exports.handler = async (event) => {
     quantity: item.qty
   }));
 
-  const orderNum = 'ALT-' + Date.now().toString().slice(-5);
+  const total = cart.reduce((suma, item) => suma + item.price * item.qty, 0);
+  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
 
-  // Nota: si Recurrente soporta un campo "metadata" en /api/checkouts,
-  // aquí es donde conviene mandar order_num/telefono/dirección para
-  // poder identificar el pedido cuando llegue el webhook de pago exitoso.
-  // Verifica el nombre exacto del campo en la documentación de Recurrente
-  // antes de confiar en que se guarda — si no existe, usa el orderNum como
-  // referencia y captura los datos del cliente por tu cuenta (ya los tienes
-  // en el body de esta request, puedes loguearlos o guardarlos donde gustes).
+  const orderNum = await crearPedidoEnRender({
+    cliente: customer.name,
+    telefono: customer.phone,
+    direccion: customer.address,
+    productos: productosTexto,
+    total,
+    canal: 'Tarjeta',
+    estado: 'Pendiente de pago'
+  }) || ('ALT-' + Date.now().toString().slice(-5)); // respaldo si Render no respondió, para no romper el checkout
+
   const payload = JSON.stringify({
     items,
     success_url: `https://althamirgt.com/?pago=exito&orden=${orderNum}`,
-    cancel_url: `https://althamirgt.com/?pago=cancelado`,
-    metadata: {
-      orden: orderNum,
-      cliente: customer.name,
-      telefono: customer.phone,
-      direccion: customer.address,
-      nota: customer.note || ''
-    }
+    cancel_url: `https://althamirgt.com/?pago=cancelado`
   });
 
   return new Promise((resolve) => {

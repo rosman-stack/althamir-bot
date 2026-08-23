@@ -14,6 +14,25 @@
 const https = require('https');
 const crypto = require('crypto');
 
+const RENDER_API_URL = 'althamir-bot.onrender.com';
+
+function confirmarPagoEnRender(telefono, monto) {
+  return new Promise((resolve) => {
+    const secret = process.env.INTERNAL_API_SECRET;
+    if (!secret) { console.warn('[Pedido] INTERNAL_API_SECRET no configurado en Netlify'); return resolve(); }
+    const payload = JSON.stringify({ telefono, monto });
+    const req = https.request({
+      hostname: RENDER_API_URL,
+      path: '/pedido/confirmar-pago',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'X-Internal-Secret': secret }
+    }, (res) => { res.on('data', () => {}); res.on('end', resolve); });
+    req.on('error', (e) => { console.error('[Pedido] Error confirmando en Render:', e.message); resolve(); });
+    req.write(payload);
+    req.end();
+  });
+}
+
 function enviarTelegram(texto) {
   return new Promise((resolve) => {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -101,6 +120,8 @@ exports.handler = async (event) => {
       `Canal: ${canal}\n` +
       `Recibo: ${recibo}`
     );
+
+    await confirmarPagoEnRender(evento.customer?.phone, evento.amount_in_cents / 100);
   }
   // Otros event_type (intent.failed, intent.pending, etc.) los ignoramos por ahora,
   // pero igual respondemos 200 para que Recurrente no siga reintentando.

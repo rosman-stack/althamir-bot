@@ -15,6 +15,8 @@ const ADMIN_TOKEN      = process.env.ADMIN_TOKEN;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID  = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET; // compartido con las Netlify functions de Recurrente
+const pedidos = require('./pedidos');
 
 // Middleware simple para proteger rutas de administración con un token.
 // Uso: agregar ?token=TU_ADMIN_TOKEN a la URL, o header 'x-admin-token'.
@@ -324,6 +326,69 @@ app.post('/telegram-webhook', async (req, res) => {
 
   } catch (error) {
     console.error('[Telegram webhook] Error:', error.message);
+  }
+});
+
+// ─── Sistema de Pedidos ───────────────────────────────────────────────────
+const ALLOWED_ORIGIN = 'https://althamirgt.com';
+
+function conCORS(res) {
+  res.set('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.set('Access-Control-Allow-Headers', 'Content-Type, X-Internal-Secret');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+}
+
+app.options(['/pedido', '/pedido/:telefono', '/pedido/confirmar-pago'], (req, res) => {
+  conCORS(res); res.sendStatus(200);
+});
+
+// Crear un pedido nuevo — lo llama el sitio (WhatsApp) y recurrente-checkout.js (tarjeta)
+app.post('/pedido', async (req, res) => {
+  conCORS(res);
+  try {
+    const { cliente, telefono, direccion, productos, total, canal, estado } = req.body;
+    if (!telefono || !productos || !total) {
+      return res.status(400).json({ error: 'Faltan datos del pedido (telefono, productos, total)' });
+    }
+    const orderId = await pedidos.crearPedido({ cliente, telefono, direccion, productos, total, canal, estado });
+    res.json({ orderId });
+  } catch (error) {
+    console.error('[Pedido] Error creando pedido:', error.message);
+    res.status(500).json({ error: 'No se pudo registrar el pedido' });
+  }
+});
+
+// Consulta pública del cliente por teléfono — sin login, solo ve sus propios pedidos
+app.get('/pedido/:telefono', async (req, res) => {
+  conCORS(res);
+  try {
+    const resultados = await pedidos.buscarPorTelefono(req.params.telefono);
+    res.json({ pedidos: resultados });
+  } catch (error) {
+    console.error('[Pedido] Error buscando por teléfono:', error.message);
+    res.status(500).json({ error: 'No se pudo consultar el pedido' });
+  }
+});
+
+// Confirmación de pago — SOLO la llama el webhook de Recurrente (Netlify), nunca el navegador
+app.post('/pedido/confirmar-pago', async (req, res) => {
+  const secretRecibido = req.headers['x-internal-secret'];
+  if (!INTERNAL_API_SECRET || secretRecibido !== INTERNAL_API_SECRET) {
+    console.warn('[Pedido] Intento de confirmar pago sin secret interno válido');
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  try {
+    const { telefono, monto } = req.body;
+    const orderId = await pedidos.buscarPendienteParaConfirmar(telefono, monto);
+    if (!orderId) {
+      console.warn('[Pedido] No se encontró pedido pendiente que coincida con el pago');
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+    await pedidos.actualizarEstadoPedido(orderId, { estado: 'Pagado' });
+    res.json({ orderId, actualizado: true });
+  } catch (error) {
+    console.error('[Pedido] Error confirmando pago:', error.message);
+    res.status(500).json({ error: 'Error interno' });
   }
 });
 
