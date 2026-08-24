@@ -2802,10 +2802,105 @@ function buscarEnInventario(nombreTarjeta) {
   return null;
 }
 
+// Parser de una línea CSV que respeta comas DENTRO de texto entre comillas
+// (necesario porque las descripciones traen comas naturalmente, ej: "Coco, mango y maracuyá...")
+function parsearLineaCSV(linea) {
+  const resultado = [];
+  let actual = '';
+  let entreComillas = false;
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i];
+    if (c === '"') {
+      if (entreComillas && linea[i + 1] === '"') { actual += '"'; i++; } // comilla escapada ""
+      else entreComillas = !entreComillas;
+    } else if (c === ',' && !entreComillas) {
+      resultado.push(actual.trim());
+      actual = '';
+    } else {
+      actual += c;
+    }
+  }
+  resultado.push(actual.trim());
+  return resultado;
+}
+
+function crearTarjetaDesdeSheet(p, nuevoId) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'product-card';
+  wrapper.dataset.id = String(nuevoId);
+  const imagenes = (p.imagenes && p.imagenes.length > 0) ? p.imagenes : [];
+  wrapper.dataset.imgs = JSON.stringify(imagenes);
+  wrapper.dataset.brand = p.marca;
+  wrapper.dataset.name = p.nombre;
+  wrapper.dataset.desc = p.descripcion || '';
+  wrapper.dataset.category = p.marca;
+
+  const mensajeWA = encodeURIComponent(`Hola Althamir 👋, me interesa conocer el precio de botella completa de *${p.nombre}*. ¿Podrías ayudarme?`);
+  const imgSrc = imagenes[0] || '';
+  const totalFotos = imagenes.length;
+
+  wrapper.innerHTML = `
+    <div class="card-image">${imgSrc ? `<img src="${imgSrc}" alt="${p.nombre}" loading="lazy"/>` : `<div class="card-img-placeholder">◈</div>`}${totalFotos > 1 ? `<div class="img-count">${totalFotos}</div>` : ''}</div>
+    <div class="card-body">
+      <p class="card-brand">${p.marca}</p>
+      <h3 class="card-name">${p.nombre}</h3>
+      <p class="card-desc">${p.descripcion || ''}</p>
+      <div class="card-pricing">
+        <div class="price-row"><span class="price-label">5 ml</span><span class="price-value">Q ${p.ml5 || '--'}</span></div>
+        <div class="price-row"><span class="price-label">10 ml</span><span class="price-value">Q ${p.ml10 || '--'}</span></div>
+        <div class="price-row" style="border-top:1px solid rgba(201,168,76,0.08);padding-top:8px;margin-top:4px"><span class="price-label" style="color:rgba(240,230,200,0.5)">Botella completa</span><span class="price-value" style="color:rgba(240,230,200,0.7);font-weight:400">Consultar</span></div>
+      </div>
+      <a class="btn-wa" href="https://wa.me/50252547623?text=${mensajeWA}" target="_blank">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.521-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <span>Consultar precio botella</span>
+      </a>
+    </div>
+  `;
+  return wrapper;
+}
+
+function obtenerOCrearBrandGrid(marca) {
+  const secciones = document.querySelectorAll('.brand-section');
+  for (const sec of secciones) {
+    const label = sec.querySelector('.bdlabel');
+    if (label && normalizarNombre(label.textContent.replace(/✦/g, '').trim()) === normalizarNombre(marca)) {
+      return sec.querySelector('.brand-grid');
+    }
+  }
+  // No existe esa marca todavía — creamos una sección nueva completa
+  const grid = document.getElementById('productsGrid');
+  const nuevaSeccion = document.createElement('div');
+  nuevaSeccion.className = 'brand-section';
+  nuevaSeccion.innerHTML = `
+    <div class="brand-divider"><div class="bdline"></div><span class="bdlabel">✦ ${marca} ✦</span><div class="bdline r"></div></div>
+    <div class="brand-grid"></div>
+  `;
+  grid.appendChild(nuevaSeccion);
+  return nuevaSeccion.querySelector('.brand-grid');
+}
+
+function crearProductosNuevosDesdeSheet(productos) {
+  const nombresExistentes = new Set(
+    Array.from(document.querySelectorAll('.product-card')).map(c => normalizarNombre(c.dataset.name || ''))
+  );
+  const idsExistentes = Array.from(document.querySelectorAll('.product-card')).map(c => parseInt(c.dataset.id, 10) || 0);
+  let siguienteId = Math.max(0, ...idsExistentes) + 1;
+
+  productos.forEach(p => {
+    if (!p.disponible) return; // solo creamos tarjeta para productos activos
+    if (nombresExistentes.has(normalizarNombre(p.nombre))) return; // ya existe, no duplicar
+
+    const nuevaCard = crearTarjetaDesdeSheet(p, siguienteId++);
+    const grid = obtenerOCrearBrandGrid(p.marca || 'Otras');
+    grid.appendChild(nuevaCard);
+    console.log(`[Sheets] Producto nuevo agregado al sitio: ${p.nombre}`);
+  });
+}
+
 function parsearCSV(texto) {
   const lineas = texto.trim().split('\n');
   if (lineas.length < 2) return [];
-  const encabezados = lineas[0].split(',').map(h => h.replace(/"/g, '').toLowerCase().trim());
+  const encabezados = parsearLineaCSV(lineas[0]).map(h => h.replace(/"/g, '').toLowerCase().trim());
   const idxMarca      = encabezados.findIndex(h => h === 'marca' || h.includes('marca'));
   const idxNombre     = encabezados.findIndex(h => h === 'nombre' || h.includes('nombre') || h.includes('name'));
   // FIX: Búsqueda más precisa para columnas de precio (evita falsos positivos)
@@ -2813,21 +2908,26 @@ function parsearCSV(texto) {
   const idxMl10       = encabezados.findIndex(h => h === '10ml' || h === '10' || h === 'precio10ml' || h === 'precio 10ml' || h === '10 ml' || (h.includes('10') && h.includes('ml')));
   const idxDisponible = encabezados.findIndex(h => h.includes('disponible') || h.includes('activo') || h.includes('active') || h === 'status');
   const idxImagen     = encabezados.findIndex(h => h === 'imagen' || h === 'foto' || h.includes('imagen') || h.includes('image') || h.includes('foto'));
+  const idxDesc       = encabezados.findIndex(h => h === 'descripcion' || h === 'descripción' || h.includes('descripcion') || h.includes('description'));
 
   const productos = [];
   for (let i = 1; i < lineas.length; i++) {
-    const cols = lineas[i].split(',').map(c => c.replace(/"/g, '').trim());
+    const cols = parsearLineaCSV(lineas[i]).map(c => c.replace(/"/g, '').trim());
     const nombre = cols[idxNombre] || '';
     if (!nombre) continue;
     const dispVal = (cols[idxDisponible] || '').toLowerCase();
     const estaActivo = ['si','sí','yes','true','1','activo','active','✓','✔'].includes(dispVal);
+    const imagenCelda = (idxImagen >= 0 ? (cols[idxImagen] || '') : '').trim();
+    const imagenes = imagenCelda.split('|').map(u => u.trim()).filter(Boolean);
     productos.push({
       marca: cols[idxMarca] || '',
       nombre,
       ml5: cols[idxMl5] || '',
       ml10: cols[idxMl10] || '',
       disponible: estaActivo,
-      imagen: (idxImagen >= 0 ? (cols[idxImagen] || '') : '').trim()
+      imagen: imagenes[0] || '', // primera foto = miniatura principal (compatibilidad con lo existente)
+      imagenes, // lista completa, para el carrusel
+      descripcion: (idxDesc >= 0 ? (cols[idxDesc] || '') : '').trim()
     });
   }
   return productos;
@@ -2844,7 +2944,7 @@ async function cargarInventario() {
     productos.forEach(p => {
       // Guardar con clave normalizada (minúsculas, sin tildes) para comparación flexible
       const clave = normalizarNombre(p.nombre);
-      inventarioSheets[clave] = { disponible: p.disponible, marca: p.marca, precio5ml: p.ml5, precio10ml: p.ml10, nombreOriginal: p.nombre, imagen: p.imagen };
+      inventarioSheets[clave] = { disponible: p.disponible, marca: p.marca, precio5ml: p.ml5, precio10ml: p.ml10, nombreOriginal: p.nombre, imagen: p.imagen, imagenes: p.imagenes };
     });
 
     // Guardar catálogo para Noor (solo activos)
@@ -2852,6 +2952,7 @@ async function cargarInventario() {
     catalogoSheets = generarTextoCatalogo(activos);
 
     console.log('[Sheets] Inventario cargado:', productos.length, 'productos');
+    crearProductosNuevosDesdeSheet(productos);
     aplicarDisponibilidad();
     aplicarImagenesSheet();
     renderBestsellers();
@@ -2906,14 +3007,23 @@ function aplicarImagenesSheet() {
       placeholder.replaceWith(nuevaImg);
     }
 
-    // También actualizamos la primera imagen del carrusel del modal (data-imgs),
-    // conservando las demás fotos que ya tenía el producto en el HTML, si las hay.
-    try {
-      const imgs = JSON.parse(card.dataset.imgs || '[]');
-      imgs[0] = infoSheet.imagen;
-      card.dataset.imgs = JSON.stringify(imgs);
-    } catch (e) {
-      card.dataset.imgs = JSON.stringify([infoSheet.imagen]);
+    // Si el Sheet trae varias fotos (separadas con |), reemplazamos TODO el
+    // carrusel del producto. Si solo trae una, mantenemos el comportamiento
+    // anterior: solo reemplaza la miniatura principal, conservando las demás
+    // fotos que ya tenía el producto en el HTML.
+    const imagenes = (infoSheet.imagenes && infoSheet.imagenes.length > 0) ? infoSheet.imagenes : [infoSheet.imagen];
+    card.dataset.imgs = JSON.stringify(imagenes.length > 1 ? imagenes : (() => {
+      try {
+        const existentes = JSON.parse(card.dataset.imgs || '[]');
+        existentes[0] = infoSheet.imagen;
+        return existentes;
+      } catch (e) { return [infoSheet.imagen]; }
+    })());
+
+    const contador = card.querySelector('.card-image .img-count');
+    if (contador) {
+      const total = JSON.parse(card.dataset.imgs || '[]').length;
+      contador.textContent = total;
     }
   });
 }
