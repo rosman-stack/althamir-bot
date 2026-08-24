@@ -394,6 +394,57 @@ app.post('/pedido/confirmar-pago', async (req, res) => {
 
 app.get('/', (req, res) => res.send('Noor - Bot de WhatsApp Althamir funcionando'));
 
+// ─── Monitor de salud ───────────────────────────────────────────────────────
+// Pensado para que un servicio externo (ej. cron-job.org) le pegue cada
+// 10-15 min. No solo confirma que el servidor responde — hace una llamada
+// REAL a Groq (con costo mínimo) para detectar justo el tipo de falla que
+// nos dejó sin Noor en WhatsApp cuando decomisionaron el modelo viejo sin
+// que nos enteráramos a tiempo.
+let ultimaAlertaSalud = 0;
+const ALERTA_COOLDOWN_MS = 45 * 60 * 1000; // no repetir la misma alerta antes de 45 min
+
+app.get('/health', async (req, res) => {
+  const problemas = [];
+
+  if (!GROQ_API_KEY) {
+    problemas.push('GROQ_API_KEY no configurada');
+  } else {
+    try {
+      await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        { model: 'openai/gpt-oss-20b', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 },
+        { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 8000 }
+      );
+    } catch (e) {
+      problemas.push(`Groq falló: ${e.response?.status || ''} ${e.response?.data?.error?.message || e.message}`);
+    }
+  }
+
+  if (!process.env.WHATSAPP_TOKEN) problemas.push('WHATSAPP_TOKEN no configurada');
+  if (!process.env.PHONE_NUMBER_ID) problemas.push('PHONE_NUMBER_ID no configurada');
+  if (!process.env.GOOGLE_CREDENTIALS_JSON) problemas.push('GOOGLE_CREDENTIALS_JSON no configurada');
+
+  try {
+    const { leerInventario } = require('./sheets');
+    const inv = await leerInventario();
+    if (!inv || inv.length === 0) problemas.push('Sheets: inventario vacío o inaccesible');
+  } catch (e) {
+    problemas.push(`Sheets falló: ${e.message}`);
+  }
+
+  const ok = problemas.length === 0;
+
+  if (!ok) {
+    const ahora = Date.now();
+    if (ahora - ultimaAlertaSalud > ALERTA_COOLDOWN_MS) {
+      ultimaAlertaSalud = ahora;
+      await telegramEnviarAdmin(`🚨 *Monitor de salud detectó un problema*\n\n${problemas.map(p => '• ' + p).join('\n')}`, null);
+    }
+  }
+
+  res.status(ok ? 200 : 503).json({ ok, problemas, timestamp: new Date().toISOString() });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Noor bot activo en puerto ${PORT}`);
