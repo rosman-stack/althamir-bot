@@ -85,8 +85,7 @@ function limpiarMemoria() {
   }
   
   // Limpia rate limits antiguos
-  for (const telefono in rateLimitMap) {
-    const registro = rateLimitMap[telefono];
+  for (const [telefono, registro] of rateLimitMap.entries()) {
     if (ahora - registro.inicio > RATE_LIMIT_WINDOW * 2) {
       rateLimitMap.delete(telefono);
       rateLimitsLimpiados++;
@@ -273,81 +272,74 @@ app.get('/webhook', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  // ✅ CORRECCIÓN CRÍTICA: Procesar PRIMERO, responder 200 DESPUÉS
+  // Respondemos 200 a Meta DE INMEDIATO — si esperamos a que Groq termine,
+  // Meta puede reintentar el mismo mensaje si tarda, duplicando la respuesta
+  // al cliente. Procesamos todo después, sin bloquear el ack.
+  res.sendStatus(200);
   try {
     const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    if (!mensaje || mensaje.type !== 'text') {
-      return res.sendStatus(200);
-    }
-    
+    if (!mensaje || mensaje.type !== 'text') return;
+
     const telefono = mensaje.from;
     const texto = mensaje.text.body.trim();
     console.log(`📨 Mensaje de ${telefono}: ${texto}`);
-    
-    // Rate limiting
+
     if (!checkRateLimit(telefono)) {
       await enviarMensaje(telefono, 'Estás enviando muchos mensajes. Por favor espera un momento.');
-      return res.sendStatus(200);
+      return;
     }
-    
-    // Orden desde web
+
     if (esOrdenWeb(texto)) {
       await enviarMensaje(telefono, `✅ Orden recibida. Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
       await notificarAdmin('orden', telefono, texto);
-      return res.sendStatus(200);
+      return;
     }
-    
-    // Cliente quiere asesor
+
     if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, ` Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
+      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
       if (!esperandoAsesor.has(telefono)) {
         esperandoAsesor.add(telefono);
         await notificarAdmin('asesor', telefono, texto);
       }
-      return res.sendStatus(200);
+      return;
     }
-    
-    // Cliente ya está esperando asesor
+
     if (esperandoAsesor.has(telefono)) {
       console.log(`⏳ Cliente ${telefono} esperando asesor — Noor en pausa`);
       await reenviarMensajeClienteATelegram(telefono, texto);
-      return res.sendStatus(200);
+      return;
     }
-    
-    // Conversación normal con Noor
+
     if (!conversaciones[telefono]) conversaciones[telefono] = [];
     const esPrimerMensaje = conversaciones[telefono].length === 0;
-    
+
     conversaciones[telefono].push({ role: 'user', content: texto });
     if (conversaciones[telefono].length > 20) {
       conversaciones[telefono] = conversaciones[telefono].slice(-20);
     }
-    
+
     let historial = [...conversaciones[telefono]];
     if (esPrimerMensaje) {
-      historial[0] = { 
-        role: 'user', 
-        content: `(El cliente escribe a las ${getSaludo()}, salúdale apropiadamente.) ${texto}` 
+      historial[0] = {
+        role: 'user',
+        content: `(El cliente escribe a las ${getSaludo()}, salúdale apropiadamente.) ${texto}`
       };
     }
-    
+
     const respuesta = await llamarGroq(historial);
     conversaciones[telefono].push({ role: 'assistant', content: respuesta });
-    
+
     await enviarMensaje(telefono, respuesta);
     console.log(`✅ Respuesta enviada a ${telefono}`);
-    
-    // ✅ Respondemos 200 DESPUÉS de todo el procesamiento
-    res.sendStatus(200);
-    
+
   } catch (error) {
     console.error('❌ Error procesando mensaje:', error.message);
-    
+
     // Fallback: notificar al cliente y al admin
     try {
       const mensajeOriginal = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
       const telefono = mensajeOriginal?.from;
-      
+
       if (telefono) {
         await enviarMensaje(telefono, '🙏 Disculpa, tuve un problema técnico procesando tu mensaje. Un asesor te va a escribir en breve, o puedes visitar althamirgt.com mientras tanto.');
         await notificarAdmin('asesor', telefono, `[FALLO TÉCNICO] ${error.message} — mensaje original: "${mensajeOriginal?.text?.body || ''}"`);
@@ -355,9 +347,6 @@ app.post('/webhook', async (req, res) => {
     } catch (errorFallback) {
       console.error('❌ Error enviando mensaje de respaldo:', errorFallback.message);
     }
-    
-    // Siempre respondemos 200 para que Meta no reintente
-    res.sendStatus(200);
   }
 });
 
@@ -406,7 +395,7 @@ app.post('/telegram-webhook', async (req, res) => {
     
     const telefono = telegramMsgToPhone[replyToId];
     if (!telefono) {
-      await telegramEnviarAdmin('️ No encontré a qué cliente corresponde ese mensaje (puede ser muy antiguo).', null);
+      await telegramEnviarAdmin('⚠️ No encontré a qué cliente corresponde ese mensaje (puede ser muy antiguo).', null);
       return;
     }
     

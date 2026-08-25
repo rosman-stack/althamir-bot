@@ -7,7 +7,7 @@
 const { google } = require('googleapis');
 
 const PEDIDOS_SHEET_ID = '1Wpr9WlQaqe93_mdpAsGkzklN026NSzRySPkj4g0yyh4';
-const HOJA = 'Hoja 1'; // Cambia esto si tu pestaña se llama distinto
+const HOJA = 'Sheet1'; // Nombre real de la pestaña en el Sheet de Pedidos
 const RANGO = `'${HOJA}'!A:J`; // order_id, fecha, cliente, telefono, direccion, productos, total, canal, estado, guia
 
 async function getSheetsWriteClient() {
