@@ -19,15 +19,21 @@ const RENDER_API_URL = 'althamir-bot.onrender.com';
 function confirmarPagoEnRender(telefono, monto) {
   return new Promise((resolve) => {
     const secret = process.env.INTERNAL_API_SECRET;
-    if (!secret) { console.warn('[Pedido] INTERNAL_API_SECRET no configurado en Netlify'); return resolve(); }
+    if (!secret) { console.warn('[Pedido] INTERNAL_API_SECRET no configurado en Netlify'); return resolve(null); }
     const payload = JSON.stringify({ telefono, monto });
     const req = https.request({
       hostname: RENDER_API_URL,
       path: '/pedido/confirmar-pago',
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'X-Internal-Secret': secret }
-    }, (res) => { res.on('data', () => {}); res.on('end', resolve); });
-    req.on('error', (e) => { console.error('[Pedido] Error confirmando en Render:', e.message); resolve(); });
+    }, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
+      });
+    });
+    req.on('error', (e) => { console.error('[Pedido] Error confirmando en Render:', e.message); resolve(null); });
     req.write(payload);
     req.end();
   });
@@ -112,16 +118,24 @@ exports.handler = async (event) => {
     const canal = evento.details?.channel || evento.type || '';
     const recibo = evento.receipt_number || evento.id;
 
-    await enviarTelegram(
-      `💳 <b>¡Pago recibido!</b>\n` +
-      `Monto: Q${monto} ${moneda}\n` +
-      `Cliente: ${cliente}\n` +
-      `Teléfono: ${telefono}\n` +
-      `Canal: ${canal}\n` +
-      `Recibo: ${recibo}`
-    );
+    const resultado = await confirmarPagoEnRender(evento.customer?.phone, evento.amount_in_cents / 100);
 
-    await confirmarPagoEnRender(evento.customer?.phone, evento.amount_in_cents / 100);
+    if (resultado?.orderId) {
+      // El detalle completo (productos, dirección, etc.) ya se avisó al crear
+      // el pedido — este es solo un aviso corto de que el pago se confirmó.
+      await enviarTelegram(`✅ Pedido ${resultado.orderId} — pago confirmado (Q${monto} ${moneda}, recibo ${recibo})`);
+    } else {
+      // No pudimos emparejarlo con un pedido registrado — avisamos completo
+      // por si acaso, para no perder el rastro del pago.
+      await enviarTelegram(
+        `💳 <b>¡Pago recibido!</b> (no se encontró el pedido correspondiente en el Sheet)\n` +
+        `Monto: Q${monto} ${moneda}\n` +
+        `Cliente: ${cliente}\n` +
+        `Teléfono: ${telefono}\n` +
+        `Canal: ${canal}\n` +
+        `Recibo: ${recibo}`
+      );
+    }
   }
   // Otros event_type (intent.failed, intent.pending, etc.) los ignoramos por ahora,
   // pero igual respondemos 200 para que Recurrente no siga reintentando.
