@@ -1144,25 +1144,6 @@ document.getElementById('cartItems').addEventListener('click', e => {
 
 
 function sendOrderToWA() {
-  const name = document.getElementById('custName').value.trim();
-  const phone = document.getElementById('custPhone').value.trim();
-  const address = document.getElementById('custAddress').value.trim();
-  const note = document.getElementById('cartNote').value.trim();
-
-  if (!name || !phone || !address) {
-    showToast('⚠️ Completa nombre, teléfono y dirección');
-    return;
-  }
-
-  const orderNum = 'ALT-' + Date.now().toString().slice(-5);
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
-
-  // Registramos el pedido en el Sheet ANTES de salir hacia WhatsApp.
-  // Usamos sendBeacon en vez de fetch normal porque la página está a punto
-  // de navegar a wa.me — un fetch normal se cancelaría a medio camino, pero
-  // sendBeacon está diseñado justo para esto: sigue enviándose aunque
-  // cambiemos de página de inmediato.
   try {
     const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
     navigator.sendBeacon(
@@ -1171,25 +1152,27 @@ function sendOrderToWA() {
     );
   } catch (e) {
     console.warn('No se pudo registrar el pedido en el historial:', e);
-    // No bloqueamos el envío por WhatsApp aunque esto falle
   }
 
-  let msg = `🖤 *NUEVA ORDEN ALTHAMIR*\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `📋 *Orden:* ${orderNum}\n`;
-  msg += `👤 *Cliente:* ${name}\n`;
-  msg += `📞 *Teléfono:* ${phone}\n`;
-  msg += `📍 *Dirección:* ${address}\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🛍️ *Productos:*\n`;
+  // Se usan secuencias de escape Unicode para garantizar compatibilidad exacta
+  let msg = "\u{1F4E3} *NUEVA ORDEN ALTHAMIR*\n";
+  msg += "-----------------------------------\n";
+  msg += `\u{1F9FE} *Orden:* ${orderNum}\n`;
+  msg += `\u{1F464} *Cliente:* ${name}\n`;
+  msg += `\u{1F4DE} *Teléfono:* ${phone}\n`;
+  msg += `\u{1F4CD} *Dirección:* ${address}\n`;
+  msg += "-----------------------------------\n";
+  msg += "\u{1F6CD}\uFE0F *Productos:*\n";
+  
   cart.forEach(item => {
     msg += `• ${item.name} (${item.size}) x${item.qty} — Q ${(item.price * item.qty).toFixed(0)}\n`;
   });
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `💰 *Total: Q ${total.toFixed(0)}*\n`;
-  if (note) msg += `📝 *Nota:* ${note}\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `_Enviado desde althamir.gt_`;
+  
+  msg += "-----------------------------------\n";
+  msg += `\u{1F4B0} *Total:* Q ${total.toFixed(0)}\n`;
+  if (note) msg += `\u{1F4DD} *Nota:* ${note}\n`;
+  msg += "-----------------------------------\n";
+  msg += "_Enviado desde althamir.gt_";
 
   const url = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
   window.location.href = url;
@@ -1199,10 +1182,9 @@ function sendOrderToWA() {
     saveCart();
     updateCartUI();
     closeCart();
-    showToast('🖤 ¡Orden enviada! Te contactamos pronto.');
-  }, 800);
+    showToast('\u{1F49C} ¡Orden enviada! Te contactamos pronto.');
+  }, 500);
 }
-
 // Init cart UI on load
 if (cart.length > 0) { updateCartUI(); showCartFab(); }
 
