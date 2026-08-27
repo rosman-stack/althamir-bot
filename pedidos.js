@@ -123,4 +123,13 @@ async function buscarPendienteParaConfirmar(telefono, monto, ventanaMinutos = 45
   return null;
 }
 
-module.exports = { crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId };
+// Chequeo liviano de conectividad, usado por el monitor de salud — solo lee
+// el encabezado, no escribe nada. Si el nombre de la pestaña (HOJA) está mal,
+// esto falla igual que fallaría un guardado real, pero sin crear un pedido falso.
+async function verificarConexion() {
+  const sheets = await getSheetsWriteClient();
+  await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA}'!A1:A1` });
+  return true;
+}
+
+module.exports = { crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion };

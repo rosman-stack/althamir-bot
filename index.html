@@ -60,6 +60,12 @@
 <meta name="theme-color" content="#0d2416"/>
 <link rel="icon" type="image/png" href="https://res.cloudinary.com/dwnqasp3x/image/upload/w_32,h_32,c_fill,f_auto/imagen_001_q9ncz3.png"/>
 <link rel="apple-touch-icon" href="https://res.cloudinary.com/dwnqasp3x/image/upload/w_180,h_180,c_fill,f_auto/imagen_001_q9ncz3.png"/>
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#060d08"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Althamir"/>
 
 <!-- PWA: permite "Agregar a pantalla de inicio" en Android/iOS -->
 <link rel="manifest" href="/manifest.json"/>
@@ -1143,66 +1149,6 @@ document.getElementById('cartItems').addEventListener('click', e => {
 
 
 
-function sendOrderToWA() {
-  const name = document.getElementById('custName').value.trim();
-  const phone = document.getElementById('custPhone').value.trim();
-  const address = document.getElementById('custAddress').value.trim();
-  const note = document.getElementById('cartNote').value.trim();
-
-  if (!name || !phone || !address) {
-    showToast('⚠️ Completa nombre, teléfono y dirección');
-    return;
-  }
-
-  const orderNum = 'ALT-' + Date.now().toString().slice(-5);
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
-
-  // Registramos el pedido en el Sheet ANTES de salir hacia WhatsApp.
-  // Usamos sendBeacon en vez de fetch normal porque la página está a punto
-  // de navegar a wa.me — un fetch normal se cancelaría a medio camino, pero
-  // sendBeacon está diseñado justo para esto: sigue enviándose aunque
-  // cambiemos de página de inmediato.
-  try {
-    const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
-    navigator.sendBeacon(
-      'https://althamir-bot.onrender.com/pedido',
-      new Blob([JSON.stringify(datosPedido)], { type: 'application/json' })
-    );
-  } catch (e) {
-    console.warn('No se pudo registrar el pedido en el historial:', e);
-    // No bloqueamos el envío por WhatsApp aunque esto falle
-  }
-
-  let msg = `🖤 *NUEVA ORDEN ALTHAMIR*\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `📋 *Orden:* ${orderNum}\n`;
-  msg += `👤 *Cliente:* ${name}\n`;
-  msg += `📞 *Teléfono:* ${phone}\n`;
-  msg += `📍 *Dirección:* ${address}\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🛍️ *Productos:*\n`;
-  cart.forEach(item => {
-    msg += `• ${item.name} (${item.size}) x${item.qty} — Q ${(item.price * item.qty).toFixed(0)}\n`;
-  });
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `💰 *Total: Q ${total.toFixed(0)}*\n`;
-  if (note) msg += `📝 *Nota:* ${note}\n`;
-  msg += `━━━━━━━━━━━━━━━━━━\n`;
-  msg += `_Enviado desde althamir.gt_`;
-
-  const url = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
-  window.location.href = url;
-
-  setTimeout(() => {
-    cart = [];
-    saveCart();
-    updateCartUI();
-    closeCart();
-    showToast('🖤 ¡Orden enviada! Te contactamos pronto.');
-  }, 800);
-}
-
 // Init cart UI on load
 if (cart.length > 0) { updateCartUI(); showCartFab(); }
 
@@ -1512,13 +1458,36 @@ function showOrderConfirm() {
   if (note) msg += `📝 *Nota:* ${note}\n`;
   msg += `_Enviado desde althamir.gt_`;
 
-  confirmSendBtn.href = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
-  confirmSendBtn.onclick = () => {
-    setTimeout(() => {
-      cart = []; saveCart(); updateCartUI(); closeCart();
-      confirmOverlay.classList.remove('open');
-      showToast('🖤 ¡Orden enviada! Te contactamos pronto.');
-    }, 500);
+  const waUrl = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
+  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
+
+  confirmSendBtn.href = waUrl;
+  confirmSendBtn.onclick = (e) => {
+    e.preventDefault(); // registramos el pedido primero, luego navegamos nosotros mismos
+    confirmSendBtn.style.pointerEvents = 'none';
+    const textoOriginal = confirmSendBtn.textContent;
+    confirmSendBtn.textContent = 'Guardando pedido...';
+
+    const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
+    const controlador = new AbortController();
+    const limite = setTimeout(() => controlador.abort(), 4000); // no colgar al cliente más de 4s
+
+    fetch('https://althamir-bot.onrender.com/pedido', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datosPedido),
+      signal: controlador.signal
+    })
+      .catch(err => console.warn('No se pudo registrar el pedido en el historial:', err))
+      .finally(() => {
+        clearTimeout(limite);
+        cart = []; saveCart(); updateCartUI(); closeCart();
+        confirmOverlay.classList.remove('open');
+        showToast('🖤 ¡Orden enviada! Te contactamos pronto.');
+        confirmSendBtn.style.pointerEvents = '';
+        confirmSendBtn.textContent = textoOriginal;
+        window.location.href = waUrl; // ahora sí navegamos, con el pedido ya guardado
+      });
   };
 
   confirmOverlay.classList.add('open');
@@ -2193,5 +2162,12 @@ async function noorSend() {
   </div>
 </div>
 
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW no se pudo registrar:', err));
+  });
+}
+</script>
 </body>
 </html>

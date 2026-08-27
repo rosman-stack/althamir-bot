@@ -208,7 +208,10 @@ app.post('/webhook', async (req, res) => {
 
     if (esOrdenWeb(texto)) {
       await enviarMensaje(telefono, `Orden recibida. Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
-      await notificarAdmin('orden', telefono, texto);
+      // Nota: ya NO avisamos aquí a Telegram — el pedido se registra y notifica
+      // desde el sitio al momento de dar clic en "Enviar Orden" (ruta POST
+      // /pedido), antes de que el cliente llegue a mandar este mensaje. Avisar
+      // otra vez aquí duplicaría el aviso del mismo pedido.
       return;
     }
 
@@ -445,6 +448,12 @@ app.get('/health', async (req, res) => {
     if (!inv || inv.length === 0) problemas.push('Sheets: inventario vacío o inaccesible');
   } catch (e) {
     problemas.push(`Sheets falló: ${e.message}`);
+  }
+
+  try {
+    await pedidos.verificarConexion();
+  } catch (e) {
+    problemas.push(`Sheet de Pedidos inaccesible (revisa el nombre de la pestaña en pedidos.js): ${e.message}`);
   }
 
   const ok = problemas.length === 0;
