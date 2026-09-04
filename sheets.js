@@ -81,7 +81,7 @@ async function leerInventario() {
   ml5: fila[idxMl5] || '',
   ml10: fila[idxMl10] || '',
   imagenes
-});
+}); }
     
     cacheCatalogo = productos;
     ultimaActualizacion = ahora;
