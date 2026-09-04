@@ -56,6 +56,7 @@ async function leerInventario() {
     const idxDisponible = encabezados.findIndex(h => 
       h.includes('disponible') || h.includes('activo') || h.includes('active')
     );
+    const idxImgs = encabezados.findIndex(h => h.includes('img') || h.includes('foto') || h.includes('imagen') || h.includes('url'));
     
     const productos = [];
     for (let i = 1; i < filas.length; i++) {
@@ -69,14 +70,18 @@ async function leerInventario() {
       const estaActivo = ['si', 'sí', 'yes', 'true', '1', 'activo', 'active', '✓', '✔'].includes(disponible);
       
       if (!estaActivo) continue;
+
+      const imagenes = (idxImgs !== -1 && fila[idxImgs]) 
+  ? fila[idxImgs].split('|').map(url => url.trim()).filter(Boolean) 
+  : [];
       
       productos.push({
-        marca: fila[idxMarca] || '',
-        nombre,
-        ml5: fila[idxMl5] || '',
-        ml10: fila[idxMl10] || ''
-      });
-    }
+  marca: fila[idxMarca] || '',
+  nombre,
+  ml5: fila[idxMl5] || '',
+  ml10: fila[idxMl10] || '',
+  imagenes
+});
     
     cacheCatalogo = productos;
     ultimaActualizacion = ahora;
