@@ -1665,7 +1665,7 @@ function parsearCSV(texto) {
 
 async function cargarInventario() {
   try {
-    const res = await fetch(SHEETS_CSV_URL);
+    const res = await fetch(`${SHEETS_CSV_URL}&_=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const csv = await res.text();
     const productos = parsearCSV(csv);
