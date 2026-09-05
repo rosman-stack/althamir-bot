@@ -77,6 +77,37 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@200;300;400;500&display=swap&font-display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css">
+<style>
+/* Carrusel de fotos dentro de la tarjeta del catálogo (grid).
+   Nota: si prefieres, puedes mover este bloque a styles.css; funciona igual aquí. */
+.card-image{ position:relative; overflow:hidden; }
+.card-carousel-arrow{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:50%;
+  background:rgba(10,10,10,0.55); border:1px solid rgba(240,230,200,0.25);
+  color:#f0e6c8; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; opacity:0; transition:opacity .2s ease, background .2s ease;
+  z-index:4; font-size:15px; line-height:1; padding:0;
+}
+.card-image:hover .card-carousel-arrow{ opacity:1; }
+.card-carousel-arrow:hover{ background:rgba(10,10,10,0.85); }
+.card-carousel-prev{ left:8px; }
+.card-carousel-next{ right:8px; }
+.card-carousel-dots{
+  position:absolute; bottom:8px; left:0; right:0;
+  display:flex; justify-content:center; gap:5px; z-index:4;
+}
+.card-carousel-dot{
+  width:5px; height:5px; border-radius:50%;
+  background:rgba(240,230,200,0.45); border:none; padding:0; cursor:pointer;
+  transition:background .2s ease, transform .2s ease;
+}
+.card-carousel-dot.active{ background:#c9a84c; transform:scale(1.4); }
+@media (hover:none){
+  /* En móvil no hay hover: mostrar siempre las flechas para que se note que hay más fotos */
+  .card-carousel-arrow{ opacity:1; }
+}
+</style>
 </head>
 <body>
 
@@ -939,41 +970,99 @@ filterBtns.forEach(btn => {
 });
 
 
-// Render first image as card thumbnail
-document.querySelectorAll('.product-card').forEach(card => {
-  const imgs = JSON.parse(card.dataset.imgs || '[]');
+// ═══ CARRUSEL DE FOTOS EN LA TARJETA (grid) ═══
+// Se centraliza en una función reutilizable porque debe poder ejecutarse:
+//  1) al cargar la página (tarjetas estáticas del HTML)
+//  2) cuando Sheets crea una tarjeta nueva (crearProductosNuevosDesdeSheet)
+//  3) cuando Sheets actualiza las fotos de una tarjeta existente (aplicarImagenesSheet)
+function configurarCarruselTarjeta(card) {
+  let imgs = [];
+  try { imgs = JSON.parse(card.dataset.imgs || '[]').filter(Boolean); } catch (e) { imgs = []; }
   const imgDiv = card.querySelector('.card-image');
   if (!imgDiv) return;
 
-  // Si ya hay una <img> en el HTML, no duplicar
+  // Asegurar que exista la <img> visible (si la tarjeta tenía el placeholder ◈)
   let img = imgDiv.querySelector('img');
-
   if (!img && imgs.length > 0) {
-    // Solo crear img si no existe (tarjetas con placeholder)
     const placeholder = imgDiv.querySelector('.card-img-placeholder');
     if (placeholder) placeholder.style.display = 'none';
     img = document.createElement('img');
-    img.src = imgs[0];
     img.alt = card.dataset.name || '';
     img.loading = 'lazy';
     img.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center;filter:brightness(0.88);display:block;';
     imgDiv.appendChild(img);
+    card.addEventListener('mouseenter', () => { img.style.transform = 'scale(1.04)'; img.style.filter = 'brightness(1)'; });
+    card.addEventListener('mouseleave', () => { img.style.transform = 'scale(1)'; img.style.filter = 'brightness(0.88)'; });
+  }
+  if (img && imgs.length > 0 && !img.src) img.src = imgs[0];
+
+  // Badge contador de fotos
+  const badge = imgDiv.querySelector('.img-count');
+  if (badge) {
+    if (imgs.length > 1) { badge.textContent = imgs.length + ' fotos'; badge.classList.add('show'); }
+    else { badge.classList.remove('show'); }
   }
 
-  if (img) {
-    card.addEventListener('mouseenter', () => { img.style.transform='scale(1.04)'; img.style.filter='brightness(1)'; });
-    card.addEventListener('mouseleave', () => { img.style.transform='scale(1)'; img.style.filter='brightness(0.88)'; });
-  }
-});
+  // Quitar controles previos (evita duplicar flechas/puntos si se vuelve a llamar)
+  imgDiv.querySelectorAll('.card-carousel-arrow, .card-carousel-dots').forEach(el => el.remove());
+  if (!img || imgs.length <= 1) return; // solo 1 foto (o ninguna): no hace falta carrusel
 
-// Show img count badge if > 1
-cards.forEach(card => {
-  const imgs = JSON.parse(card.dataset.imgs || '[]');
-  if (imgs.length > 1) {
-    const badge = card.querySelector('.img-count');
-    if (badge) { badge.textContent = imgs.length + ' fotos'; badge.classList.add('show'); }
-  }
-});
+  // Algunas tarjetas antiguas usan una foto "hero" distinta como miniatura
+  // principal, que no es la primera del array data-imgs. Si es el caso,
+  // arrancamos el carrusel desde ahí (indice -1) para no pegar un salto raro
+  // apenas se toca la flecha.
+  let indice = imgs.indexOf(img.src);
+  const dots = [];
+  const irA = (i) => {
+    indice = (i + imgs.length) % imgs.length;
+    img.src = imgs[indice];
+    dots.forEach((d, di) => d.classList.toggle('active', di === indice));
+  };
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'card-carousel-arrow card-carousel-prev';
+  prevBtn.setAttribute('aria-label', 'Foto anterior');
+  prevBtn.textContent = '‹';
+  prevBtn.addEventListener('click', e => { e.stopPropagation(); irA(indice - 1); });
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'card-carousel-arrow card-carousel-next';
+  nextBtn.setAttribute('aria-label', 'Foto siguiente');
+  nextBtn.textContent = '›';
+  nextBtn.addEventListener('click', e => { e.stopPropagation(); irA(indice + 1); });
+
+  const dotsWrap = document.createElement('div');
+  dotsWrap.className = 'card-carousel-dots';
+  imgs.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'card-carousel-dot' + (i === indice ? ' active' : '');
+    d.setAttribute('aria-label', 'Ver foto ' + (i + 1));
+    d.addEventListener('click', e => { e.stopPropagation(); irA(i); });
+    dotsWrap.appendChild(d);
+    dots.push(d);
+  });
+
+  imgDiv.appendChild(prevBtn);
+  imgDiv.appendChild(nextBtn);
+  imgDiv.appendChild(dotsWrap);
+
+  // Deslizar con el dedo en móvil
+  let touchStartX = 0;
+  imgDiv.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  imgDiv.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) irA(indice + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+}
+
+function configurarTodosLosCarruseles() {
+  document.querySelectorAll('.product-card').forEach(configurarCarruselTarjeta);
+}
+
+configurarTodosLosCarruseles();
 
 // Modal
 function openModal(card) {
@@ -1039,18 +1128,22 @@ function openModal(card) {
   document.body.style.overflow='hidden';
 }
 
-cards.forEach(card => {
-  card.addEventListener('click', (e) => {
-    const waLink = e.target.closest('.btn-wa');
-    if (waLink) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.location.href = waLink.href;
-      return;
-    }
-    if (e.target.closest('.size-btn, .btn-add-cart')) return;
-    openModal(card);
-  });
+// Delegado en el contenedor (no en cada tarjeta individual): así también
+// funciona para las tarjetas que Sheets crea después de cargar la página.
+document.getElementById('productsGrid').addEventListener('click', (e) => {
+  const card = e.target.closest('.product-card');
+  if (!card) return;
+  // Clicks dentro del mini-carrusel de la tarjeta (flechas/puntos) ya hacen
+  // stopPropagation en su propio handler, así que no llegan hasta aquí.
+  const waLink = e.target.closest('.btn-wa');
+  if (waLink) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = waLink.href;
+    return;
+  }
+  if (e.target.closest('.size-btn, .btn-add-cart')) return;
+  openModal(card);
 });
 document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
@@ -1623,6 +1716,7 @@ function crearProductosNuevosDesdeSheet(productos) {
     const nuevaCard = crearTarjetaDesdeSheet(p, siguienteId++);
     const grid = obtenerOCrearBrandGrid(p.marca || 'Otras');
     grid.appendChild(nuevaCard);
+    configurarCarruselTarjeta(nuevaCard); // construye flechas/puntos si trae varias fotos
     console.log(`[Sheets] Producto nuevo agregado al sitio: ${p.nombre}`);
   });
 }
@@ -1750,11 +1844,7 @@ function aplicarImagenesSheet() {
       } catch (e) { return [infoSheet.imagen]; }
     })());
 
-    const contador = card.querySelector('.card-image .img-count');
-    if (contador) {
-      const total = JSON.parse(card.dataset.imgs || '[]').length;
-      contador.textContent = total;
-    }
+    configurarCarruselTarjeta(card); // reconstruye flechas/puntos/badge con las fotos ya actualizadas
   });
 }
 
