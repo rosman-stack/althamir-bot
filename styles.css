@@ -546,6 +546,13 @@ footer p{margin-top:8px;text-transform:uppercase}
   .navbar-search:focus { width: 150px; }
   .navbar-brand { font-size: 14px; letter-spacing: 3px; }
 }
+@media(max-width:400px) {
+  .navbar { padding: 12px 14px; }
+  .navbar-actions { gap: 10px; }
+  .navbar-brand { font-size: 12px; letter-spacing: 2px; }
+  .navbar-search { width: 88px; padding: 6px 24px 6px 10px; font-size: 10px; }
+  .navbar-search:focus { width: 110px; }
+}
 
 /* ═══ BACK TO TOP ═══ */
 .back-top {

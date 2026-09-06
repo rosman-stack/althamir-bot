@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Althamir - Generador de Publicaciones Facebook</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#c9a84c; --gold-light:#e6cb7a; --bg:#060d08; --bg2:#0d1710;
+    --text:#f3f4f6; --muted:#9ca3af; --border:rgba(201,168,76,0.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#111412;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;padding:24px;min-height:100vh}
+  .wrap{max-width:1100px;margin:0 auto}
+  header{margin-bottom:24px}
+  header h1{font-family:'Playfair Display',serif;color:var(--gold);font-size:24px;margin-bottom:4px}
+  header p{color:var(--muted);font-size:13px}
+
+  .layout{display:flex;gap:28px;flex-wrap:wrap}
+  .col{flex:1;min-width:340px}
+
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;color:var(--gold);font-size:16px;margin-bottom:14px}
+
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;margin-top:14px}
+  label:first-of-type{margin-top:0}
+  select,input[type=text],input[type=number],textarea{
+    width:100%;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.12);
+    color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit;
+  }
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  textarea{resize:vertical;min-height:70px}
+
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:600;color:var(--muted)}
+  .tab.active{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--bg);border:none;
+    padding:12px 18px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;width:100%;justify-content:center;margin-top:16px}
+  .btn:hover{background:var(--gold-light)}
+  .btn.secondary{background:transparent;border:1px solid var(--gold);color:var(--gold)}
+
+  .dropzone{
+    border:2px dashed rgba(201,168,76,0.4);border-radius:12px;padding:24px;text-align:center;
+    cursor:pointer;color:var(--muted);font-size:13px;margin-top:6px;transition:0.2s;
+  }
+  .dropzone.dragover{border-color:var(--gold);background:rgba(201,168,76,0.06)}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .thumb{width:70px;height:70px;border-radius:8px;overflow:hidden;position:relative;border:1px solid var(--border)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.7);color:#fff;width:18px;height:18px;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer}
+  .photo-count{font-size:12px;color:var(--muted);margin-top:8px}
+  .photo-count.warn{color:#e08a5a}
+
+  .preview-box{
+    background:#fff;color:#1c1e21;border-radius:10px;padding:0;overflow:hidden;
+    font-family:Helvetica,Arial,sans-serif;
+  }
+  .preview-header{display:flex;align-items:center;gap:10px;padding:12px 14px}
+  .preview-avatar{width:40px;height:40px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800}
+  .preview-name{font-weight:700;font-size:14px}
+  .preview-sub{font-size:12px;color:#65676b}
+  .preview-text{padding:0 14px 12px;font-size:14px;line-height:1.4;white-space:pre-wrap}
+  .preview-imgs{display:grid;gap:2px}
+  .preview-imgs img{width:100%;height:220px;object-fit:cover;display:block}
+  .preview-imgs.two{grid-template-columns:1fr 1fr}
+  .preview-imgs.three{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
+  .preview-imgs.three img:first-child{grid-row:span 2;height:100%}
+  .preview-imgs.many{grid-template-columns:1fr 1fr}
+
+  .copy-area{margin-top:16px}
+  .copy-area textarea{min-height:220px;font-size:13px;line-height:1.5;background:#fff;color:#1c1e21;border-color:#ccc}
+
+  .status{font-size:12px;margin-top:8px;color:var(--muted)}
+  .status.ok{color:#6cc78a}
+  .status.err{color:#e08a8a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Althamir · Generador de Publicaciones Facebook</h1>
+    <p>Elige el producto (viene directo de tu Sheet de inventario), sube tus fotos, y copia el texto listo — para Marketplace o publicación normal.</p>
+  </header>
+
+  <div class="layout">
+    <div class="col">
+      <div class="card">
+        <h2>1. Producto</h2>
+        <div id="loadStatus" class="status">Cargando catálogo desde tu Sheet...</div>
+
+        <label>Buscar / elegir fragancia del catálogo</label>
+        <select id="productoSelect"><option value="">— elige un producto —</option></select>
+
+        <label>O escribe uno manual (promo, combo, algo que no está en el Sheet)</label>
+        <input type="text" id="manualNombre" placeholder="Ej. Combo San Valentín 2x1">
+
+        <label>Marca</label>
+        <input type="text" id="campoMarca">
+        <label>Descripción / nota olfativa</label>
+        <textarea id="campoDesc"></textarea>
+        <label>Precio 5ml (Q)</label>
+        <input type="number" id="campoP5">
+        <label>Precio 10ml (Q)</label>
+        <input type="number" id="campoP10">
+      </div>
+
+      <div class="card">
+        <h2>2. Tus fotos</h2>
+        <div class="dropzone" id="dropzone">
+          📷 Arrastra tus fotos aquí o toca para elegir<br>(solo para vista previa — luego las subes tú mismo directo en Facebook)
+        </div>
+        <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+        <div class="thumbs" id="thumbs"></div>
+        <div class="photo-count" id="photoCount"></div>
+      </div>
+
+      <div class="card">
+        <h2>3. Tipo de publicación</h2>
+        <div class="tabs">
+          <div class="tab active" data-tipo="marketplace">Marketplace</div>
+          <div class="tab" data-tipo="post">Publicación normal</div>
+        </div>
+        <button class="btn" id="generarBtn">✨ Generar texto</button>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h2>Vista previa</h2>
+        <div class="preview-box" id="previewBox">
+          <div class="preview-header">
+            <div class="preview-avatar">A</div>
+            <div>
+              <div class="preview-name">Althamir</div>
+              <div class="preview-sub">Ahora mismo</div>
+            </div>
+          </div>
+          <div class="preview-text" id="previewText">Elige un producto y dale "Generar texto" para ver la vista previa aquí.</div>
+          <div class="preview-imgs" id="previewImgs"></div>
+        </div>
+
+        <div class="copy-area">
+          <label>Texto final (edítalo si quieres antes de copiar)</label>
+          <textarea id="textoFinal"></textarea>
+          <button class="btn" id="copiarBtn">📋 Copiar texto</button>
+          <button class="btn secondary" id="abrirFbBtn">Abrir Facebook en otra pestaña</button>
+          <div class="status" id="copyStatus"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEETS_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=0`;
+
+let productos = [];
+let fotos = [];
+let tipoActual = 'marketplace';
+
+// ─── Parser CSV que respeta comas dentro de comillas ─────────────
+function parsearLineaCSV(linea) {
+  const resultado = [];
+  let actual = '', entreComillas = false;
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i];
+    if (c === '"') {
+      if (entreComillas && linea[i+1] === '"') { actual += '"'; i++; }
+      else entreComillas = !entreComillas;
+    } else if (c === ',' && !entreComillas) {
+      resultado.push(actual.trim()); actual = '';
+    } else actual += c;
+  }
+  resultado.push(actual.trim());
+  return resultado;
+}
+
+async function cargarCatalogo() {
+  const statusEl = document.getElementById('loadStatus');
+  try {
+    const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: 'no-store' });
+    const texto = await res.text();
+    const lineas = texto.split('\n').filter(l => l.trim());
+    const encabezados = parsearLineaCSV(lineas[0]).map(h => h.replace(/"/g,'').toLowerCase().trim());
+
+    const idxMarca = encabezados.indexOf('marca');
+    const idxNombre = encabezados.indexOf('nombre');
+    const idxMl5 = encabezados.findIndex(h => h.includes('5'));
+    const idxMl10 = encabezados.findIndex(h => h.includes('10'));
+    const idxDisp = encabezados.findIndex(h => h.includes('disponible'));
+    const idxDesc = encabezados.findIndex(h => h.includes('descripcion') || h.includes('descripción'));
+
+    productos = [];
+    for (let i = 1; i < lineas.length; i++) {
+      const cols = parsearLineaCSV(lineas[i]).map(c => c.replace(/"/g,'').trim());
+      const nombre = cols[idxNombre] || '';
+      if (!nombre) continue;
+      const disp = (cols[idxDisp] || '').toLowerCase();
+      const activo = ['si','sí','yes','true','1'].includes(disp);
+      productos.push({
+        marca: cols[idxMarca] || '',
+        nombre,
+        ml5: cols[idxMl5] || '',
+        ml10: cols[idxMl10] || '',
+        descripcion: idxDesc >= 0 ? (cols[idxDesc] || '') : '',
+        activo
+      });
+    }
+
+    const select = document.getElementById('productoSelect');
+    productos.forEach((p, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${p.marca} — ${p.nombre}${p.activo ? '' : ' (no disponible)'}`;
+      select.appendChild(opt);
+    });
+
+    statusEl.textContent = `✅ ${productos.length} productos cargados desde tu Sheet`;
+    statusEl.className = 'status ok';
+  } catch (e) {
+    statusEl.textContent = '⚠️ No se pudo cargar el Sheet — puedes llenar los campos manualmente';
+    statusEl.className = 'status err';
+  }
+}
+
+document.getElementById('productoSelect').addEventListener('change', (e) => {
+  const p = productos[e.target.value];
+  if (!p) return;
+  document.getElementById('manualNombre').value = '';
+  document.getElementById('campoMarca').value = p.marca;
+  document.getElementById('campoDesc').value = p.descripcion;
+  document.getElementById('campoP5').value = p.ml5.replace(/[^0-9.]/g,'');
+  document.getElementById('campoP10').value = p.ml10.replace(/[^0-9.]/g,'');
+});
+
+// ─── Fotos (solo vista previa local, no se suben a ningún lado) ──
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('dragover');
+  manejarArchivos(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => manejarArchivos(e.target.files));
+
+function manejarArchivos(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => { fotos.push(e.target.result); renderThumbs(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderThumbs() {
+  const cont = document.getElementById('thumbs');
+  cont.innerHTML = fotos.map((src, i) => `
+    <div class="thumb"><img src="${src}"><div class="x" onclick="quitarFoto(${i})">✕</div></div>
+  `).join('');
+  const countEl = document.getElementById('photoCount');
+  countEl.textContent = `${fotos.length} foto(s)${fotos.length > 10 ? ' — Marketplace permite máximo 10' : ''}`;
+  countEl.className = fotos.length > 10 ? 'photo-count warn' : 'photo-count';
+  actualizarPreviewImgs();
+}
+function quitarFoto(i) { fotos.splice(i, 1); renderThumbs(); }
+
+function actualizarPreviewImgs() {
+  const cont = document.getElementById('previewImgs');
+  const n = fotos.length;
+  cont.className = 'preview-imgs' + (n === 2 ? ' two' : n === 3 ? ' three' : n > 3 ? ' many' : '');
+  cont.innerHTML = fotos.slice(0, 4).map(src => `<img src="${src}">`).join('');
+}
+
+// ─── Tabs tipo de publicación ─────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    tipoActual = tab.dataset.tipo;
+  });
+});
+
+// ─── Generar texto ─────────────────────────────────────────────────
+function generarTexto() {
+  const nombreManual = document.getElementById('manualNombre').value.trim();
+  const marca = document.getElementById('campoMarca').value.trim();
+  const desc = document.getElementById('campoDesc').value.trim();
+  const p5 = document.getElementById('campoP5').value.trim();
+  const p10 = document.getElementById('campoP10').value.trim();
+  const selectEl = document.getElementById('productoSelect');
+  const nombreProducto = nombreManual || (productos[selectEl.value]?.nombre) || '';
+
+  if (!nombreProducto) {
+    alert('Elige un producto del catálogo o escribe uno manual.');
+    return;
+  }
+
+  let precios = '';
+  if (p5) precios += `• 5ml: Q${p5}\n`;
+  if (p10) precios += `• 10ml: Q${p10}\n`;
+
+  let texto = '';
+  if (tipoActual === 'marketplace') {
+    texto = `Decant de ${nombreProducto}${marca ? ' — ' + marca : ''}\n\n` +
+      (desc ? `${desc}\n\n` : '') +
+      (precios ? `${precios}\n` : '') +
+      `100% original, decantado directo de la botella completa 🖤\n` +
+      `📦 Envíos a todo Guatemala\n` +
+      `💬 Más info: escríbenos por WhatsApp o visita althamirgt.com`;
+  } else {
+    texto = `✨ ${nombreProducto}${marca ? ' (' + marca + ')' : ''} ✨\n\n` +
+      (desc ? `${desc}\n\n` : '') +
+      (precios ? `Decants disponibles:\n${precios}\n` : '') +
+      `¿Primera vez comprando decants? Prueba antes de invertir en la botella completa 🧴\n\n` +
+      `📦 Envíos a todo Guatemala\n💬 WhatsApp o link en bio para pedidos\n\n` +
+      `#AlthamirGT #PerfumesGuatemala #DecantsGuatemala #PerfumeriaArabe`;
+  }
+
+  document.getElementById('previewText').textContent = texto;
+  document.getElementById('textoFinal').value = texto;
+}
+
+document.getElementById('generarBtn').addEventListener('click', generarTexto);
+
+document.getElementById('copiarBtn').addEventListener('click', async () => {
+  const texto = document.getElementById('textoFinal').value;
+  const statusEl = document.getElementById('copyStatus');
+  try {
+    await navigator.clipboard.writeText(texto);
+    statusEl.textContent = '✅ Copiado — ya puedes pegarlo en Facebook';
+    statusEl.className = 'status ok';
+  } catch (e) {
+    statusEl.textContent = '⚠️ No se pudo copiar automático, selecciona el texto y cópialo manual (Ctrl+C)';
+    statusEl.className = 'status err';
+  }
+});
+
+document.getElementById('abrirFbBtn').addEventListener('click', () => {
+  window.open('https://www.facebook.com/marketplace/create/item', '_blank');
+});
+
+cargarCatalogo();
+</script>
+</body>
+</html>
