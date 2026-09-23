@@ -314,14 +314,26 @@ app.post('/telegram-webhook', async (req, res) => {
     // Solo procesamos si es una RESPUESTA (reply) a uno de nuestros avisos —
     // así evitamos que cualquier mensaje suelto en el chat intente reenviarse.
     const replyToId = mensaje.reply_to_message?.message_id;
+    const replyToTexto = mensaje.reply_to_message?.text || '';
     if (!replyToId) {
       await telegramEnviarAdmin('⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto.', null);
       return;
     }
 
-    const telefono = telegramMsgToPhone[replyToId];
+    // Primero busca en memoria (rápido). Si el proceso se reinició — Render
+    // free duerme el servicio tras inactividad y esa memoria se borra — no
+    // pasa nada: Telegram sí conserva el texto del mensaje original, y ese
+    // texto siempre trae el teléfono ("Cliente: +502..." o "💬 +502...:"),
+    // así que lo recuperamos de ahí como respaldo, sin depender de la memoria.
+    let telefono = telegramMsgToPhone[replyToId];
     if (!telefono) {
-      await telegramEnviarAdmin('⚠️ No encontré a qué cliente corresponde ese mensaje (puede ser muy antiguo).', null);
+      const match = replyToTexto.match(/\+(\d{8,15})/);
+      telefono = match ? match[1] : null;
+      if (telefono) console.log(`[Telegram→WhatsApp] Teléfono recuperado del texto (memoria vacía, probable reinicio del servicio): ${telefono}`);
+    }
+
+    if (!telefono) {
+      await telegramEnviarAdmin('⚠️ No encontré el teléfono del cliente en ese mensaje. Intenta responder directamente sobre el aviso original de "Cliente: +502...".', null);
       return;
     }
 
