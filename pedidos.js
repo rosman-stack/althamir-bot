@@ -5,6 +5,20 @@
 // de Editor en este Sheet.
 
 const { google } = require('googleapis');
+const crypto = require('crypto');
+
+// Evita la "inyección de fórmulas": como los datos del pedido los escribe el público,
+// una celda que empiece con = + - @ se interpretaría como fórmula en Google Sheets
+// (por ejemplo =IMPORTDATA(...) puede enviar el contenido de la hoja a un tercero).
+// Le anteponemos una comilla para que se guarde siempre como texto.
+function celda(valor, max = 500) {
+  let t = valor === undefined || valor === null ? '' : String(valor);
+  t = t.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max);
+  if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+  return t;
+}
+const CANALES = ['WhatsApp', 'Tarjeta'];
+const ESTADOS_INICIALES = ['Procesando', 'Pendiente de pago'];
 
 const PEDIDOS_SHEET_ID = '1Wpr9WlQaqe93_mdpAsGkzklN026NSzRySPkj4g0yyh4';
 const HOJA = 'Sheet1'; // Nombre real de la pestaña en el Sheet de Pedidos
@@ -23,7 +37,7 @@ async function getSheetsWriteClient() {
 
 function generarOrderId() {
   const yymmdd = new Date().toISOString().slice(2, 10).replace(/-/g, '');
-  const sufijo = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const sufijo = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `ALT-${yymmdd}-${sufijo}`;
 }
 
@@ -36,7 +50,14 @@ async function crearPedido({ cliente, telefono, direccion, productos, total, can
   const sheets = await getSheetsWriteClient();
   const orderId = generarOrderId();
   const fecha = new Date().toISOString();
-  const fila = [orderId, fecha, cliente || '', telefono || '', direccion || '', productos || '', total || '', canal || 'WhatsApp', estado || 'Procesando', ''];
+  const totalNum = Number(total);
+  const fila = [
+    orderId, fecha, celda(cliente, 120), celda(telefono, 30), celda(direccion, 400), celda(productos, 1500),
+    Number.isFinite(totalNum) ? totalNum : '',
+    CANALES.includes(canal) ? canal : 'WhatsApp',
+    ESTADOS_INICIALES.includes(estado) ? estado : 'Procesando',
+    ''
+  ];
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: PEDIDOS_SHEET_ID,
@@ -67,7 +88,7 @@ async function actualizarEstadoPedido(orderId, { estado, guia } = {}) {
     spreadsheetId: PEDIDOS_SHEET_ID,
     range: `'${HOJA}'!I${rowIndex + 1}:J${rowIndex + 1}`,
     valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[nuevoEstado, nuevaGuia]] }
+    requestBody: { values: [[celda(nuevoEstado, 60), celda(nuevaGuia, 120)]] }
   });
 
   console.log(`[Pedidos] ${orderId} → estado: ${nuevoEstado}${nuevaGuia ? ', guía: ' + nuevaGuia : ''}`);
@@ -88,7 +109,7 @@ async function buscarPorTelefono(telefono) {
     const f = filas[i];
     if (!f || !f[3]) continue;
     const filaTelefono = f[3].toString().replace(/\D/g, '');
-    if (filaTelefono.endsWith(limpio) || limpio.endsWith(filaTelefono)) {
+    if (filaTelefono.length >= 8 && (filaTelefono.endsWith(limpio) || limpio.endsWith(filaTelefono))) {
       resultados.push({
         orderId: f[0], fecha: f[1], productos: f[5], total: f[6],
         canal: f[7], estado: f[8] || 'Procesando', guia: f[9] || ''

@@ -16,6 +16,9 @@ const crypto = require('crypto');
 
 const RENDER_API_URL = 'althamir-bot.onrender.com';
 
+// Telegram en modo HTML: escapamos lo que viene del cliente para que un nombre con < > & no rompa el aviso
+const esc = (t) => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 function confirmarPagoEnRender(telefono, monto) {
   return new Promise((resolve) => {
     const secret = process.env.INTERNAL_API_SECRET;
@@ -130,10 +133,10 @@ exports.handler = async (event) => {
       await enviarTelegram(
         `💳 <b>¡Pago recibido!</b> (no se encontró el pedido correspondiente en el Sheet)\n` +
         `Monto: Q${monto} ${moneda}\n` +
-        `Cliente: ${cliente}\n` +
-        `Teléfono: ${telefono}\n` +
-        `Canal: ${canal}\n` +
-        `Recibo: ${recibo}`
+        `Cliente: ${esc(cliente)}\n` +
+        `Teléfono: ${esc(telefono)}\n` +
+        `Canal: ${esc(canal)}\n` +
+        `Recibo: ${esc(recibo)}`
       );
     }
   }

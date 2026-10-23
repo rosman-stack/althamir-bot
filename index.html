@@ -828,17 +828,19 @@ async function buscarMisPedidos() {
       'Empacado': '#5a9ec9', 'En tránsito': '#5a7fc9', 'Entregado': '#5ac96b'
     };
 
+    // Los pedidos los puede crear cualquiera desde fuera: se escapa todo antes de pintarlo
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     cont.innerHTML = lista.map(p => `
       <div style="border:1px solid var(--gold-border,#333);border-radius:8px;padding:10px;margin-bottom:8px;text-align:left;">
         <div style="display:flex;justify-content:space-between;font-size:12px;opacity:0.7;">
-          <span>${p.orderId}</span><span>${new Date(p.fecha).toLocaleDateString('es-GT')}</span>
+          <span>${esc(p.orderId)}</span><span>${new Date(p.fecha).toLocaleDateString('es-GT')}</span>
         </div>
-        <div style="font-size:13px;margin:6px 0;">${p.productos}</div>
+        <div style="font-size:13px;margin:6px 0;">${esc(p.productos)}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:12px;padding:3px 8px;border-radius:12px;background:${colorEstado[p.estado] || '#888'}22;color:${colorEstado[p.estado] || '#888'};">${p.estado}</span>
+          <span style="font-size:12px;padding:3px 8px;border-radius:12px;background:${colorEstado[p.estado] || '#888'}22;color:${colorEstado[p.estado] || '#888'};">${esc(p.estado)}</span>
           <strong>Q${parseFloat(p.total).toFixed(0)}</strong>
         </div>
-        ${p.guia ? `<div style="font-size:12px;margin-top:6px;opacity:0.8;">📦 Guía de envío: ${p.guia}</div>` : ''}
+        ${p.guia ? `<div style="font-size:12px;margin-top:6px;opacity:0.8;">📦 Guía de envío: ${esc(p.guia)}</div>` : ''}
       </div>
     `).join('');
   } catch (e) {

@@ -4,7 +4,9 @@ const axios = require('axios');
 const { leerInventario, formatearCatalogo } = require('./sheets');
 
 const app = express();
-app.use(express.json());
+app.set('trust proxy', 1); // Render va detrás de un proxy: así req.ip es la IP real de cada visitante
+// Guardamos el cuerpo "crudo" para poder verificar la firma que Meta manda en /webhook
+app.use(express.json({ limit: '100kb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
@@ -16,7 +18,48 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID  = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET; // compartido con las Netlify functions de Recurrente
+const META_APP_SECRET = process.env.META_APP_SECRET; // "Clave secreta de la app" en developers.facebook.com → Configuración → Básica
+const crypto = require('crypto');
 const pedidos = require('./pedidos');
+
+// ─── Seguridad: firma de Meta, llamadas internas y límite de peticiones ──────
+function compararSeguro(a, b) {
+  const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || ''));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
+// Meta firma cada notificación con HMAC-SHA256 usando el secreto de la app.
+// Sin esta verificación, cualquiera que conozca la URL del bot (el repo es
+// público) podría mandarle mensajes falsos y hacer que escriba a cualquier número.
+function firmaMetaValida(req) {
+  if (!META_APP_SECRET) return true; // modo compatible: se avisa al iniciar que falta configurarlo
+  const recibida = req.headers['x-hub-signature-256'] || '';
+  if (!req.rawBody || !recibida.startsWith('sha256=')) return false;
+  const esperada = 'sha256=' + crypto.createHmac('sha256', META_APP_SECRET).update(req.rawBody).digest('hex');
+  return compararSeguro(recibida, esperada);
+}
+
+function esLlamadaInterna(req) {
+  return !!INTERNAL_API_SECRET && compararSeguro(req.headers['x-internal-secret'], INTERNAL_API_SECRET);
+}
+
+// Limitador simple en memoria: máximo `max` peticiones por minuto por IP.
+function limitar(max, ventanaMs = 60 * 1000) {
+  const registro = new Map();
+  return (req, res, next) => {
+    const ahora = Date.now();
+    const clave = req.ip || 'desconocida';
+    const historial = (registro.get(clave) || []).filter(t => ahora - t < ventanaMs);
+    historial.push(ahora);
+    registro.set(clave, historial);
+    if (registro.size > 2000) registro.delete(registro.keys().next().value);
+    if (historial.length > max) {
+      res.set('Retry-After', '60');
+      return res.status(429).json({ error: 'Demasiadas solicitudes, intenta de nuevo en un minuto.' });
+    }
+    next();
+  };
+}
 
 // Middleware simple para proteger rutas de administración con un token.
 // Uso: agregar ?token=TU_ADMIN_TOKEN a la URL, o header 'x-admin-token'.
@@ -170,10 +213,16 @@ async function reenviarMensajeClienteATelegram(telefono, texto) {
 async function telegramEnviarAdmin(texto, telefono) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return null;
   try {
-    const res = await axios.post(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      { chat_id: TELEGRAM_CHAT_ID, text: texto, parse_mode: 'Markdown' }
-    );
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    let res;
+    try {
+      res = await axios.post(url, { chat_id: TELEGRAM_CHAT_ID, text: texto, parse_mode: 'Markdown' });
+    } catch (e) {
+      // Un nombre o mensaje con _ * ` [ rompe el formato Markdown y Telegram lo rechaza (400):
+      // antes el aviso se perdía. Reintentamos sin formato para que SIEMPRE llegue.
+      if (e.response?.status !== 400) throw e;
+      res = await axios.post(url, { chat_id: TELEGRAM_CHAT_ID, text: texto });
+    }
     const msgId = res.data?.result?.message_id;
     if (msgId) telegramMsgToPhone[msgId] = telefono;
     return msgId;
@@ -213,6 +262,10 @@ app.get('/webhook', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
+  if (!firmaMetaValida(req)) {
+    console.warn('[Seguridad] /webhook con firma inválida — descartado');
+    return res.sendStatus(401);
+  }
   res.sendStatus(200);
   try {
     const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
@@ -322,6 +375,12 @@ app.post('/telegram-webhook', async (req, res) => {
     const mensaje = req.body.message;
     if (!mensaje || !mensaje.text) return;
 
+    // Solo aceptamos mensajes que vengan de TU chat de Telegram
+    if (TELEGRAM_CHAT_ID && String(mensaje.chat?.id) !== String(TELEGRAM_CHAT_ID)) {
+      console.warn('[Telegram] Mensaje de un chat no autorizado — descartado');
+      return;
+    }
+
     // Solo procesamos si es una RESPUESTA (reply) a uno de nuestros avisos —
     // así evitamos que cualquier mensaje suelto en el chat intente reenviarse.
     const replyToId = mensaje.reply_to_message?.message_id;
@@ -368,17 +427,33 @@ function conCORS(res) {
   res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 }
 
+const limitePedidosCrear = limitar(6);
+const limitePedidosConsultar = limitar(15);
+const conLimite = (limite) => (req, res, next) => { conCORS(res); return limite(req, res, next); };
+
 app.options(['/pedido', '/pedido/:telefono', '/pedido/confirmar-pago'], (req, res) => {
   conCORS(res); res.sendStatus(200);
 });
 
 // Crear un pedido nuevo — lo llama el sitio (WhatsApp) y recurrente-checkout.js (tarjeta)
-app.post('/pedido', async (req, res) => {
+app.post('/pedido', (req, res, next) => (esLlamadaInterna(req) ? next() : conLimite(limitePedidosCrear)(req, res, next)), async (req, res) => {
   conCORS(res);
   try {
-    const { cliente, telefono, direccion, productos, total, canal, estado } = req.body;
-    if (!telefono || !productos || !total) {
-      return res.status(400).json({ error: 'Faltan datos del pedido (telefono, productos, total)' });
+    const cuerpo = req.body || {};
+    const { cliente, telefono, direccion, productos } = cuerpo;
+    const total = Number(cuerpo.total);
+    // Quien llama desde el navegador (público) NO puede elegir canal ni estado:
+    // solo las funciones de Netlify (con el secreto interno) pueden crear pedidos de tarjeta.
+    const interno = esLlamadaInterna(req);
+    const canal = interno && cuerpo.canal === 'Tarjeta' ? 'Tarjeta' : 'WhatsApp';
+    const estado = interno && cuerpo.estado === 'Pendiente de pago' ? 'Pendiente de pago' : 'Procesando';
+
+    const telefonoOk = typeof telefono === 'string' && telefono.replace(/\D/g, '').length >= 8 && telefono.length <= 30;
+    const productosOk = typeof productos === 'string' && productos.trim().length > 0 && productos.length <= 1500;
+    const totalOk = Number.isFinite(total) && total > 0 && total <= 50000;
+    const largoOk = (v, max) => v === undefined || v === null || (typeof v === 'string' && v.length <= max);
+    if (!telefonoOk || !productosOk || !totalOk || !largoOk(cliente, 120) || !largoOk(direccion, 400)) {
+      return res.status(400).json({ error: 'Datos del pedido inválidos (teléfono, productos, total)' });
     }
     const orderId = await pedidos.crearPedido({ cliente, telefono, direccion, productos, total, canal, estado });
 
@@ -404,7 +479,7 @@ app.post('/pedido', async (req, res) => {
 });
 
 // Consulta pública del cliente por teléfono — sin login, solo ve sus propios pedidos
-app.get('/pedido/:telefono', async (req, res) => {
+app.get('/pedido/:telefono', conLimite(limitePedidosConsultar), async (req, res) => {
   conCORS(res);
   try {
     const resultados = await pedidos.buscarPorTelefono(req.params.telefono);
@@ -448,7 +523,9 @@ app.get('/', (req, res) => res.send('Noor - Bot de WhatsApp Althamir funcionando
 let ultimaAlertaSalud = 0;
 const ALERTA_COOLDOWN_MS = 45 * 60 * 1000; // no repetir la misma alerta antes de 45 min
 
+let saludCache = null; // { t, status, body } — evita que llamar /health en bucle gaste cuota de Groq y de Sheets
 app.get('/health', async (req, res) => {
+  if (saludCache && Date.now() - saludCache.t < 60 * 1000) return res.status(saludCache.status).json(saludCache.body);
   const problemas = [];
 
   if (!GROQ_API_KEY) {
@@ -493,12 +570,17 @@ app.get('/health', async (req, res) => {
     }
   }
 
-  res.status(ok ? 200 : 503).json({ ok, problemas, timestamp: new Date().toISOString() });
+  const cuerpoSalud = { ok, problemas, timestamp: new Date().toISOString() };
+  saludCache = { t: Date.now(), status: ok ? 200 : 503, body: cuerpoSalud };
+  res.status(ok ? 200 : 503).json(cuerpoSalud);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Noor bot activo en puerto ${PORT}`);
+  if (!META_APP_SECRET) console.warn('[Seguridad] META_APP_SECRET no configurado — /webhook NO verifica la firma de Meta. Configúralo en Render.');
+  if (!TELEGRAM_WEBHOOK_SECRET) console.warn('[Seguridad] TELEGRAM_WEBHOOK_SECRET no configurado — /telegram-webhook acepta cualquier origen.');
+  if (!INTERNAL_API_SECRET) console.warn('[Seguridad] INTERNAL_API_SECRET no configurado — los pedidos con tarjeta no podrán registrarse.');
   // Pre-cargar inventario al arrancar
   leerInventario().then(p => console.log(`[Inicio] ${p?.length || 0} productos cargados desde Sheets`));
 });

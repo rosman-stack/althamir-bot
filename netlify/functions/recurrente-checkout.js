@@ -10,6 +10,7 @@
 // nunca en el HTML/JS del frontend.
 
 const https = require('https');
+const { verificarCarrito } = require('./lib/precios');
 
 const RENDER_API_URL = 'althamir-bot.onrender.com';
 
@@ -22,7 +23,7 @@ function crearPedidoEnRender({ cliente, telefono, direccion, productos, total, c
       hostname: RENDER_API_URL,
       path: '/pedido',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'X-Internal-Secret': process.env.INTERNAL_API_SECRET || '' }
     }, (res) => {
       let data = '';
       res.on('data', c => data += c);
@@ -89,31 +90,39 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Body inválido' }) };
   }
 
-  const cart = Array.isArray(body.cart) ? body.cart : [];
   const customer = body.customer || {};
+  const texto = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const nombreCliente = texto(customer.name, 120);
+  const telefonoCliente = texto(customer.phone, 30);
+  const direccionCliente = texto(customer.address, 400);
 
-  if (cart.length === 0) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'El carrito está vacío' }) };
-  }
-  if (!customer.name || !customer.phone || !customer.address) {
+  if (!nombreCliente || !telefonoCliente || !direccionCliente) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Faltan datos del cliente (nombre, teléfono, dirección)' }) };
   }
+  if (telefonoCliente.replace(/\D/g, '').length < 8) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Escribe un teléfono válido' }) };
+  }
 
-  // Construir items en el formato que espera Recurrente
-  const items = cart.map(item => ({
-    name: `${item.name} (${item.size})`,
-    amount_in_cents: Math.round(item.price * 100),
+  // Los PRECIOS los pone el servidor leyendo el inventario real. Del navegador solo se
+  // usa qué producto, qué tamaño y cuántos; cualquier "price" que mande se ignora.
+  const verificado = await verificarCarrito(body.cart);
+  if (!verificado.ok) {
+    return { statusCode: verificado.status, headers, body: JSON.stringify({ error: verificado.error }) };
+  }
+
+  const items = verificado.items.map(i => ({
+    name: `${i.nombre} (${i.tamano})`,
+    amount_in_cents: Math.round(i.precio * 100),
     currency: 'GTQ',
-    quantity: item.qty
+    quantity: i.qty
   }));
-
-  const total = cart.reduce((suma, item) => suma + item.price * item.qty, 0);
-  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
+  const total = verificado.total;
+  const productosTexto = verificado.productosTexto;
 
   const orderNum = await crearPedidoEnRender({
-    cliente: customer.name,
-    telefono: customer.phone,
-    direccion: customer.address,
+    cliente: nombreCliente,
+    telefono: telefonoCliente,
+    direccion: direccionCliente,
     productos: productosTexto,
     total,
     canal: 'Tarjeta',
@@ -151,16 +160,19 @@ exports.handler = async (event) => {
               body: JSON.stringify({ checkout_url: parsed.checkout_url || parsed.url, orden: orderNum })
             });
           } catch (e) {
-            resolve({ statusCode: 500, headers, body: JSON.stringify({ error: 'Respuesta inesperada de Recurrente', raw: data }) });
+            console.error('[Recurrente] Respuesta inesperada:', data.slice(0, 300));
+            resolve({ statusCode: 500, headers, body: JSON.stringify({ error: 'Respuesta inesperada del servicio de pagos' }) });
           }
         } else {
-          resolve({ statusCode: res.statusCode, headers, body: JSON.stringify({ error: 'Error de Recurrente', detalle: data }) });
+          console.error('[Recurrente] Error', res.statusCode, data.slice(0, 300));
+          resolve({ statusCode: 502, headers, body: JSON.stringify({ error: 'No se pudo iniciar el pago. Intenta de nuevo o haz tu pedido por WhatsApp.' }) });
         }
       });
     });
 
     req.on('error', (err) => {
-      resolve({ statusCode: 500, headers, body: JSON.stringify({ error: err.message }) });
+      console.error('[Recurrente] Error de red:', err.message);
+      resolve({ statusCode: 502, headers, body: JSON.stringify({ error: 'No se pudo conectar con el servicio de pagos' }) });
     });
 
     req.write(payload);
