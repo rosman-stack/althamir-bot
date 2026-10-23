@@ -93,7 +93,12 @@ const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsA
 - Cada decant tiene un precio EXACTO de 5ml y un precio EXACTO de 10ml según el catálogo de abajo.
 - NUNCA inventes ni generalices un "rango" de precios (por ejemplo, nunca digas algo como "los decants van de Q100 a Q450"). Eso es incorrecto y confunde al cliente.
 - Si te preguntan "¿cuánto cuestan los decants?" en general, responde con 2-3 ejemplos concretos del catálogo con su precio EXACTO, o pide el nombre de la fragancia que le interesa para dar el precio preciso.
-- Si una fragancia no está en el catálogo de abajo, NO inventes un precio — di que no está disponible actualmente.
+- Si una fragancia no está en el catálogo de abajo, NO inventes un precio — di que por ahora no la tenemos disponible como decant y ofrece que, si quiere que un asesor la consulte o la cotice, escriba la palabra *asesor*.
+
+⚠️ BOTELLAS COMPLETAS Y MAYOREO — SIEMPRE CON UN ASESOR:
+- El catálogo de abajo es SOLO de decants (5ml y 10ml). Las botellas completas NO aparecen en ese catálogo porque un asesor las cotiza una por una.
+- NUNCA digas que una botella "no está disponible" ni que "no hay" solo porque no la ves en el catálogo, y NUNCA inventes precios de botellas completas.
+- Si preguntan por botella completa, frasco, 50ml, 100ml, mayoreo o reventa: responde que con gusto se les cotiza y que un asesor los atenderá, e invítalos a escribir la palabra *asesor* para comunicarlos.
 
 ⚠️ COSTOS DE ENVÍO — LEE CON CUIDADO, NO ES LO MISMO QUE EL PRECIO DE UN PERFUME:
 - El envío/entrega/delivery es un cargo APARTE del precio del decant. Cuando pregunten por "envío", "entrega", "delivery" o "cuánto cuesta que me lo lleven", responde con estos montos exactos — NUNCA con el precio de una fragancia:
@@ -171,15 +176,49 @@ function quiereAsesor(texto) {
          t.includes('pedido') || t.includes('confirmar') || t.includes('ordenar');
 }
 
+function sinAcentos(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+// Las botellas completas y el mayoreo no están en el catálogo de decants: los cotiza un asesor.
+// Se detecta aquí (no con el modelo) para que SIEMPRE se derive y nunca se conteste "no hay".
+// Si el mensaje habla de "decant", se deja que Noor responda con el catálogo.
+function tipoCotizacion(texto) {
+  const t = sinAcentos(texto);
+  if (/\bdecants?\b/.test(t)) return null;
+  if (/\b(mayoreo|mayorista|mayoristas|por mayor|al por mayor|revender|reventa)\b/.test(t)) return 'mayoreo';
+  if (/\b(botella|botellas|frasco|frascos)\b/.test(t) || /\b(50|100)\s?ml\b/.test(t)) return 'botella';
+  return null;
+}
+
+// Meta puede entregar el MISMO mensaje más de una vez (reintentos). Recordamos el id de
+// cada mensaje 15 minutos para no contestarlo dos veces.
+const mensajesVistos = new Map();
+function yaProcesado(id) {
+  if (!id) return false;
+  const ahora = Date.now();
+  if (mensajesVistos.size > 500) {
+    for (const [k, t] of mensajesVistos) if (ahora - t > 15 * 60 * 1000) mensajesVistos.delete(k);
+  }
+  if (mensajesVistos.has(id)) return true;
+  mensajesVistos.set(id, ahora);
+  return false;
+}
+
 async function enviarMensaje(telefono, mensaje) {
+  const texto = typeof mensaje === 'string' ? mensaje.trim() : '';
+  if (!texto) {
+    console.warn(`[WhatsApp] Mensaje vacío para ${telefono} — no se envía (WhatsApp lo rechazaría)`);
+    return false;
+  }
   try {
     await axios.post(
       `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
-      { messaging_product: 'whatsapp', to: telefono, type: 'text', text: { body: mensaje } },
+      { messaging_product: 'whatsapp', to: telefono, type: 'text', text: { body: texto.slice(0, 4096) } },
       { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' } }
     );
+    return true;
   } catch (err) {
     console.error('Error enviando mensaje:', err.response?.data || err.message);
+    return false;
   }
 }
 
@@ -234,17 +273,30 @@ async function telegramEnviarAdmin(texto, telefono) {
 
 async function llamarGroq(historial) {
   const systemPrompt = await getNoorSystem();
-  const res = await axios.post(
-    'https://api.groq.com/openai/v1/chat/completions',
-    {
-      model: 'openai/gpt-oss-20b',
-      messages: [{ role: 'system', content: systemPrompt }, ...historial],
-      max_tokens: 450,
-      temperature: 0.7
-    },
-    { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
-  );
-  return res.data.choices[0].message.content;
+  const pedir = async (maxTokens) => {
+    const res = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: 'openai/gpt-oss-20b',
+        messages: [{ role: 'system', content: systemPrompt }, ...historial],
+        max_tokens: maxTokens,
+        temperature: 0.7
+      },
+      { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
+    );
+    const eleccion = res.data.choices?.[0];
+    return { texto: (eleccion?.message?.content || '').trim(), motivo: eleccion?.finish_reason };
+  };
+  // Este modelo "razona" antes de contestar y ese razonamiento gasta parte de max_tokens:
+  // a veces se agota el límite y la respuesta llega VACÍA (y WhatsApp rechaza un texto vacío).
+  // Reintentamos una vez con más margen; si sigue vacía, devolvemos '' y el webhook deriva a un asesor.
+  let r = await pedir(450);
+  if (!r.texto) {
+    console.warn(`[Groq] Respuesta vacía (finish_reason: ${r.motivo}) — reintentando con más margen`);
+    r = await pedir(1000);
+    if (!r.texto) console.warn(`[Groq] Respuesta vacía otra vez (finish_reason: ${r.motivo})`);
+  }
+  return r.texto;
 }
 
 // ─── Webhook ────────────────────────────────────────────────────────────────
@@ -267,8 +319,22 @@ app.post('/webhook', async (req, res) => {
     return res.sendStatus(401);
   }
   res.sendStatus(200);
+  // Un mismo aviso de Meta puede traer varios mensajes: se atienden todos (antes solo el primero).
+  for (const entrada of req.body?.entry || []) {
+    for (const cambio of entrada.changes || []) {
+      for (const mensaje of cambio.value?.messages || []) {
+        if (yaProcesado(mensaje.id)) {
+          console.log(`[Webhook] Mensaje ${mensaje.id} repetido por Meta — ignorado`);
+          continue;
+        }
+        await procesarMensaje(mensaje);
+      }
+    }
+  }
+});
+
+async function procesarMensaje(mensaje) {
   try {
-    const mensaje = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     if (!mensaje || mensaje.type !== 'text') return;
     const telefono = mensaje.from;
     const texto = mensaje.text.body.trim();
@@ -280,6 +346,17 @@ app.post('/webhook', async (req, res) => {
       // desde el sitio al momento de dar clic en "Enviar Orden" (ruta POST
       // /pedido), antes de que el cliente llegue a mandar este mensaje. Avisar
       // otra vez aquí duplicaría el aviso del mismo pedido.
+      return;
+    }
+
+    const cotizacion = tipoCotizacion(texto);
+    if (cotizacion && !esperandoAsesor.has(telefono)) {
+      const aviso = cotizacion === 'mayoreo'
+        ? 'Con gusto te ayudamos con precios de mayoreo. Te comunico con un asesor y en un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm'
+        : 'Con gusto te cotizamos la botella completa. Te comunico con un asesor y en un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm';
+      await enviarMensaje(telefono, aviso);
+      esperandoAsesor.add(telefono);
+      await notificarAdmin('asesor', telefono, `[COTIZAR ${cotizacion.toUpperCase()}] ${texto}`);
       return;
     }
 
@@ -309,9 +386,18 @@ app.post('/webhook', async (req, res) => {
     }
 
     const respuesta = await llamarGroq(historial);
+    if (!respuesta) {
+      // El modelo no produjo texto (ni con reintento): no dejamos al cliente sin respuesta.
+      conversaciones[telefono].pop(); // no guardamos el turno fallido
+      await enviarMensaje(telefono, 'Disculpa, no pude procesar tu mensaje 🙏 Te comunico con un asesor para atenderte mejor. Horario: Lun-Sab 9am-8pm');
+      if (!esperandoAsesor.has(telefono)) {
+        esperandoAsesor.add(telefono);
+        await notificarAdmin('asesor', telefono, `[NOOR SIN RESPUESTA] ${texto}`);
+      }
+      return;
+    }
     conversaciones[telefono].push({ role: 'assistant', content: respuesta });
-    await enviarMensaje(telefono, respuesta);
-    console.log(`Respuesta enviada a ${telefono}`);
+    if (await enviarMensaje(telefono, respuesta)) console.log(`Respuesta enviada a ${telefono}`);
 
   } catch (error) {
     console.error('Error procesando mensaje:', error.message);
@@ -319,7 +405,7 @@ app.post('/webhook', async (req, res) => {
     // respuesta. Ahora le avisamos algo razonable y te notificamos a ti
     // por Telegram para que puedas atenderlo manualmente si hace falta.
     try {
-      const mensajeOriginal = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const mensajeOriginal = mensaje;
       const telefono = mensajeOriginal?.from;
       if (telefono) {
         await enviarMensaje(telefono, 'Disculpa, tuve un problema técnico procesando tu mensaje 🙏 Un asesor te va a escribir en breve, o puedes visitar althamirgt.com mientras tanto.');
@@ -329,7 +415,7 @@ app.post('/webhook', async (req, res) => {
       console.error('Error enviando mensaje de respaldo:', errorFallback.message);
     }
   }
-});
+}
 
 // ─── Rutas de administración ─────────────────────────────────────────────────
 
