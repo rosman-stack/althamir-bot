@@ -12,7 +12,6 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const GROQ_API_KEY    = process.env.GROQ_API_KEY;
 const VERIFY_TOKEN    = process.env.VERIFY_TOKEN;
-const NTFY_TOPIC      = process.env.NTFY_TOPIC;
 const ADMIN_TOKEN      = process.env.ADMIN_TOKEN;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID  = process.env.TELEGRAM_CHAT_ID;
@@ -81,6 +80,95 @@ const conversaciones = {};
 // para saber a quién reenviar cuando el asesor responde con "Reply" en Telegram.
 const telegramMsgToPhone = {};
 const esperandoAsesor = new Set();
+const actividadAsesor = new Map();            // teléfono → última actividad (ms)
+const AUTO_LIBERAR_MS = 6 * 60 * 60 * 1000;   // Noor retoma el chat tras 6 h sin actividad
+
+const desdeAsesor = new Map();                // teléfono → cuándo empezó la espera (ms)
+const ultimoGuardado = new Map();             // teléfono → última vez que se escribió en el Sheet
+const GUARDAR_ACTIVIDAD_CADA_MS = 10 * 60 * 1000; // la "última actividad" se refresca en el Sheet como máximo cada 10 min
+
+// El estado de espera también vive en la pestaña "Asesor" del Sheet de pedidos, para sobrevivir a
+// reinicios y deploys de Render. Si el Sheet falla, el bot sigue funcionando con la memoria.
+function persistirEspera(tel, estado, desdeMs, ultimaMs) {
+  ultimoGuardado.set(tel, Date.now());
+  pedidos.guardarEsperaAsesor(tel, {
+    desde: new Date(desdeMs).toISOString(), ultima: new Date(ultimaMs).toISOString(), estado
+  }).catch(e => console.error('[Asesor] No se pudo guardar en el Sheet:', e.message));
+}
+
+function ponerEnEspera(tel) {
+  const ahora = Date.now();
+  const nuevo = !esperandoAsesor.has(tel);
+  esperandoAsesor.add(tel);
+  actividadAsesor.set(tel, ahora);
+  if (nuevo || !desdeAsesor.has(tel)) desdeAsesor.set(tel, ahora);
+  persistirEspera(tel, 'Esperando', desdeAsesor.get(tel), ahora);
+}
+function tocarEspera(tel) {
+  if (!esperandoAsesor.has(tel)) return;
+  const ahora = Date.now();
+  actividadAsesor.set(tel, ahora);
+  if (ahora - (ultimoGuardado.get(tel) || 0) > GUARDAR_ACTIVIDAD_CADA_MS) {
+    persistirEspera(tel, 'Esperando', desdeAsesor.get(tel) || ahora, ahora);
+  }
+}
+function liberarCliente(tel) {
+  const estaba = esperandoAsesor.delete(tel);
+  if (estaba) persistirEspera(tel, 'Liberado', desdeAsesor.get(tel) || Date.now(), actividadAsesor.get(tel) || Date.now());
+  actividadAsesor.delete(tel);
+  desdeAsesor.delete(tel);
+  ultimoGuardado.delete(tel);
+  conversaciones[tel] = [];
+  return estaba;
+}
+
+// Si un cliente lleva 6 h sin actividad, Noor retoma el chat y te avisa.
+function barrerEsperas() {
+  const ahora = Date.now();
+  for (const [tel, t] of [...actividadAsesor]) {
+    if (ahora - t > AUTO_LIBERAR_MS) {
+      liberarCliente(tel);
+      console.log(`Cliente ${tel} liberado automáticamente (sin actividad)`);
+      telegramEnviarAdmin(`🔓 Noor retomó el chat con +${tel} (6 h sin actividad).`, tel);
+    }
+  }
+}
+setInterval(barrerEsperas, 10 * 60 * 1000).unref();
+
+// Al iniciar: recupera del Sheet a quienes seguían esperando asesor y aplica de inmediato la regla de 6 h.
+async function restaurarEsperas() {
+  try {
+    const filas = await Promise.race([
+      pedidos.cargarEsperasAsesor(),
+      new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('tiempo de espera agotado')), 8000))
+    ]);
+    let n = 0;
+    for (const f of filas) {
+      if (f.estado !== 'Esperando') continue;
+      esperandoAsesor.add(f.telefono);
+      actividadAsesor.set(f.telefono, f.ultima);
+      desdeAsesor.set(f.telefono, f.desde);
+      ultimoGuardado.set(f.telefono, Date.now());
+      n++;
+    }
+    console.log(`[Asesor] ${n} cliente(s) en espera restaurado(s) desde el Sheet`);
+    barrerEsperas();
+  } catch (e) {
+    console.error('[Asesor] No se pudo restaurar el estado desde el Sheet (se sigue con memoria vacía):', e.message);
+  }
+}
+
+// Horario de atención: Lun-Sab 9am-8pm, hora de Guatemala (UTC-6, sin horario de verano).
+function enHorario(ahora = new Date(Date.now())) {
+  const gt = new Date(ahora.getTime() - 6 * 60 * 60 * 1000);
+  const dia = gt.getUTCDay(), hora = gt.getUTCHours();
+  return dia !== 0 && hora >= 9 && hora < 20;
+}
+function fraseAsesor() {
+  return enHorario()
+    ? 'En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm'
+    : 'Ahora estamos fuera de horario (Lun-Sab 9am-8pm), pero un asesor te responderá en cuanto abramos.';
+}
 
 const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsApp — una perfumería árabe auténtica ubicada en GUATEMALA. Tu personalidad es elegante, cálida y apasionada por las fragancias árabes, como una amiga experta que disfruta genuinamente recomendar el aroma perfecto.
 
@@ -226,27 +314,19 @@ async function notificarAdmin(tipo, telefono, mensaje) {
   const titulo = tipo === 'asesor' ? 'Asesor requerido - Althamir' : 'Nueva orden - Althamir';
   const cuerpo = `Cliente: +${telefono}\n${mensaje}`;
 
-  if (NTFY_TOPIC) {
-    try {
-      await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, cuerpo, {
-        headers: { 'Title': titulo, 'Priority': 'high', 'Content-Type': 'text/plain' }
-      });
-    } catch(e) {
-      console.error('Error notificando admin (ntfy):', e.message);
-    }
-  }
-
-  // Envía también a Telegram y guarda el message_id -> teléfono, para que si el
+  // Envía a Telegram y guarda el message_id -> teléfono, para que si el
   // asesor responde a ESE mensaje (con "Reply" en Telegram), sepamos a qué
   // cliente reenviar la respuesta por WhatsApp.
-  const msgId = await telegramEnviarAdmin(`📣 *${titulo}*\n\n${cuerpo}\n\n_Responde a este mensaje para contestarle por WhatsApp._`, telefono);
+  const aviso = enHorario() ? '' : '\n🌙 Fuera de horario: atender cuando abras.';
+  const msgId = await telegramEnviarAdmin(`📣 *${titulo}*\n\n${cuerpo}${aviso}\n\n_Responde a este mensaje para contestarle por WhatsApp. Escribe /liberar como respuesta para que Noor retome el chat._`, telefono);
   return msgId;
 }
 
 // Reenvía un mensaje nuevo del cliente mientras está esperando asesor
 // (para que el asesor vea la conversación completa en Telegram, no solo el primero).
 async function reenviarMensajeClienteATelegram(telefono, texto) {
-  await telegramEnviarAdmin(`💬 +${telefono}: ${texto}\n\n_Responde a este mensaje para contestarle._`, telefono);
+  tocarEspera(telefono);
+  await telegramEnviarAdmin(`💬 +${telefono}: ${texto}\n\n_Responde a este mensaje para contestarle. /liberar para que Noor retome el chat._`, telefono);
 }
 
 async function telegramEnviarAdmin(texto, telefono) {
@@ -269,6 +349,78 @@ async function telegramEnviarAdmin(texto, telefono) {
     console.error('Error notificando admin (Telegram):', e.response?.data || e.message);
     return null;
   }
+}
+
+// Arma un cuerpo multipart/form-data a mano (sin depender de la versión de Node ni de paquetes extra)
+function armarMultipart(campos, archivo) {
+  const limite = '----althamir' + crypto.randomBytes(8).toString('hex');
+  const partes = [];
+  for (const [k, v] of Object.entries(campos)) {
+    partes.push(Buffer.from(`--${limite}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`));
+  }
+  const nombre = String(archivo.nombre || 'archivo').replace(/["\r\n\\]/g, '_');
+  partes.push(
+    Buffer.from(`--${limite}\r\nContent-Disposition: form-data; name="${archivo.campo}"; filename="${nombre}"\r\nContent-Type: ${archivo.mime || 'application/octet-stream'}\r\n\r\n`),
+    archivo.buffer,
+    Buffer.from(`\r\n--${limite}--\r\n`)
+  );
+  return { body: Buffer.concat(partes), tipo: `multipart/form-data; boundary=${limite}` };
+}
+
+const NOMBRE_ARCHIVO = { image: 'foto', audio: 'audio', video: 'video', document: 'documento', location: 'ubicación' };
+const MAX_ARCHIVO = 20 * 1024 * 1024; // 20 MB
+
+// Descarga el archivo desde WhatsApp y lo manda a tu Telegram para que lo veas sin abrir WhatsApp
+async function reenviarArchivoATelegram(m, telefono, leyenda) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  const tipo = m.type, datos = m[tipo] || {};
+  const base = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+  const titulo = `📎 +${telefono} envió su ${NOMBRE_ARCHIVO[tipo]}${leyenda ? `: ${leyenda}` : ''}`.slice(0, 1000);
+  try {
+    if (tipo === 'location') {
+      const r = await axios.post(`${base}/sendLocation`, { chat_id: TELEGRAM_CHAT_ID, latitude: datos.latitude, longitude: datos.longitude });
+      if (r.data?.result?.message_id) telegramMsgToPhone[r.data.result.message_id] = telefono;
+      await telegramEnviarAdmin(`${titulo}${datos.address ? `\n${datos.address}` : ''}\n\n_Responde a este mensaje para contestarle._`, telefono);
+      return;
+    }
+    const auth = { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } };
+    const info = await axios.get(`https://graph.facebook.com/v25.0/${encodeURIComponent(datos.id)}`, auth);
+    if (info.data?.file_size && info.data.file_size > MAX_ARCHIVO) throw new Error('archivo demasiado grande');
+    const bin = await axios.get(info.data.url, { ...auth, responseType: 'arraybuffer', maxContentLength: MAX_ARCHIVO, timeout: 25000 });
+    const buffer = Buffer.from(bin.data);
+    const mime = (info.data.mime_type || datos.mime_type || '').toLowerCase();
+    let metodo = 'sendDocument', campo = 'document';
+    if (tipo === 'image' && /^image\/(jpeg|png)/.test(mime)) { metodo = 'sendPhoto'; campo = 'photo'; }
+    else if (tipo === 'audio' && mime.includes('ogg')) { metodo = 'sendVoice'; campo = 'voice'; }
+    else if (tipo === 'audio' && /mpeg|mp4|m4a|aac/.test(mime)) { metodo = 'sendAudio'; campo = 'audio'; }
+    else if (tipo === 'video' && mime.includes('mp4')) { metodo = 'sendVideo'; campo = 'video'; }
+    const extension = (mime.split('/')[1] || 'bin').split(';')[0];
+    const { body, tipo: contentType } = armarMultipart(
+      { chat_id: TELEGRAM_CHAT_ID, caption: `${titulo}\n\nResponde a este mensaje para contestarle.` },
+      { campo, nombre: datos.filename || `${tipo}-${telefono}.${extension}`, mime, buffer }
+    );
+    const r = await axios.post(`${base}/${metodo}`, body, { headers: { 'Content-Type': contentType }, maxBodyLength: MAX_ARCHIVO + 1024 * 1024 });
+    if (r.data?.result?.message_id) telegramMsgToPhone[r.data.result.message_id] = telefono;
+  } catch (e) {
+    console.error('[Archivo→Telegram] No se pudo reenviar:', e.response?.data || e.message);
+    await telegramEnviarAdmin(`${titulo}\n\n⚠️ No pude descargarlo: ábrelo en WhatsApp Business.\n\n_Responde a este mensaje para contestarle._`, telefono);
+  }
+}
+
+async function procesarArchivo(m) {
+  const tipo = m.type;
+  if (!NOMBRE_ARCHIVO[tipo]) { console.log(`[Webhook] Mensaje tipo "${tipo}" de ${m.from} — ignorado`); return; }
+  const telefono = m.from;
+  const leyenda = String((m[tipo] || {}).caption || '').slice(0, 500);
+  console.log(`Archivo (${tipo}) de ${telefono}`);
+  if (!esperandoAsesor.has(telefono)) {
+    ponerEnEspera(telefono);
+    await enviarMensaje(telefono, `Recibí tu ${NOMBRE_ARCHIVO[tipo]} 🙏 Un asesor lo revisará y te responderá. ${fraseAsesor()}`);
+    await notificarAdmin('asesor', telefono, `[ARCHIVO: ${NOMBRE_ARCHIVO[tipo]}]${leyenda ? ' ' + leyenda : ''}`);
+  } else {
+    tocarEspera(telefono);
+  }
+  await reenviarArchivoATelegram(m, telefono, leyenda);
 }
 
 async function llamarGroq(historial) {
@@ -335,13 +487,15 @@ app.post('/webhook', async (req, res) => {
 
 async function procesarMensaje(mensaje) {
   try {
-    if (!mensaje || mensaje.type !== 'text') return;
+    await estadoCargado;
+    if (!mensaje) return;
+    if (mensaje.type !== 'text') { await procesarArchivo(mensaje); return; }
     const telefono = mensaje.from;
     const texto = mensaje.text.body.trim();
     console.log(`Mensaje de ${telefono}: ${texto}`);
 
     if (esOrdenWeb(texto)) {
-      await enviarMensaje(telefono, `Orden recibida. Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm`);
+      await enviarMensaje(telefono, `Orden recibida. ${enHorario() ? 'Un asesor te contactará en breve para confirmar detalles. Horario Lun-Sab 9am-8pm' : 'Estamos fuera de horario (Lun-Sab 9am-8pm); un asesor te contactará en cuanto abramos para confirmar los detalles.'}`);
       // Nota: ya NO avisamos aquí a Telegram — el pedido se registra y notifica
       // desde el sitio al momento de dar clic en "Enviar Orden" (ruta POST
       // /pedido), antes de que el cliente llegue a mandar este mensaje. Avisar
@@ -352,18 +506,18 @@ async function procesarMensaje(mensaje) {
     const cotizacion = tipoCotizacion(texto);
     if (cotizacion && !esperandoAsesor.has(telefono)) {
       const aviso = cotizacion === 'mayoreo'
-        ? 'Con gusto te ayudamos con precios de mayoreo. Te comunico con un asesor y en un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm'
-        : 'Con gusto te cotizamos la botella completa. Te comunico con un asesor y en un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm';
+        ? `Con gusto te ayudamos con precios de mayoreo. Te comunico con un asesor. ${fraseAsesor()}`
+        : `Con gusto te cotizamos la botella completa. Te comunico con un asesor. ${fraseAsesor()}`;
       await enviarMensaje(telefono, aviso);
-      esperandoAsesor.add(telefono);
+      ponerEnEspera(telefono);
       await notificarAdmin('asesor', telefono, `[COTIZAR ${cotizacion.toUpperCase()}] ${texto}`);
       return;
     }
 
     if (quiereAsesor(texto)) {
-      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. En un momento alguien del equipo Althamir estará contigo. Horario: Lun-Sab 9am-8pm`);
+      await enviarMensaje(telefono, `Con gusto te comunico con un asesor. ${fraseAsesor()}`);
       if (!esperandoAsesor.has(telefono)) {
-        esperandoAsesor.add(telefono);
+        ponerEnEspera(telefono);
         await notificarAdmin('asesor', telefono, texto);
       }
       return;
@@ -371,6 +525,7 @@ async function procesarMensaje(mensaje) {
 
     if (esperandoAsesor.has(telefono)) {
       console.log(`Cliente ${telefono} esperando asesor — Noor en pausa`);
+      tocarEspera(telefono);
       await reenviarMensajeClienteATelegram(telefono, texto);
       return;
     }
@@ -389,9 +544,9 @@ async function procesarMensaje(mensaje) {
     if (!respuesta) {
       // El modelo no produjo texto (ni con reintento): no dejamos al cliente sin respuesta.
       conversaciones[telefono].pop(); // no guardamos el turno fallido
-      await enviarMensaje(telefono, 'Disculpa, no pude procesar tu mensaje 🙏 Te comunico con un asesor para atenderte mejor. Horario: Lun-Sab 9am-8pm');
+      await enviarMensaje(telefono, `Disculpa, no pude procesar tu mensaje 🙏 Te comunico con un asesor para atenderte mejor. ${fraseAsesor()}`);
       if (!esperandoAsesor.has(telefono)) {
-        esperandoAsesor.add(telefono);
+        ponerEnEspera(telefono);
         await notificarAdmin('asesor', telefono, `[NOOR SIN RESPUESTA] ${texto}`);
       }
       return;
@@ -422,8 +577,7 @@ async function procesarMensaje(mensaje) {
 app.get('/liberar', requireAdminToken, (req, res) => {
   const telefono = req.query.telefono;
   if (!telefono) return res.status(400).json({ error: 'Falta el parámetro telefono' });
-  esperandoAsesor.delete(telefono);
-  conversaciones[telefono] = [];
+  liberarCliente(telefono);
   console.log(`Cliente ${telefono} liberado — Noor retoma el chat`);
   res.json({ success: true, mensaje: `Noor retoma el chat con ${telefono}` });
 });
@@ -467,12 +621,28 @@ app.post('/telegram-webhook', async (req, res) => {
       return;
     }
 
+    await estadoCargado; // si el bot acaba de iniciar, primero se recupera quién esperaba asesor
+
+    const comando = mensaje.text.trim();
+    const mLiberar = comando.match(/^\/liberar(?:@\w+)?(?:\s+\+?(\d{8,15}))?\s*$/i);
+
+    if (/^\/pendientes(?:@\w+)?\s*$/i.test(comando)) {
+      const lista = [...actividadAsesor].map(([tel, t]) => `+${tel} (hace ${Math.round((Date.now() - t) / 60000)} min)`);
+      await telegramEnviarAdmin(lista.length ? `⏳ Clientes esperando asesor:\n${lista.join('\n')}` : '✅ No hay clientes esperando asesor.', null);
+      return;
+    }
+    if (mLiberar && mLiberar[1]) { // /liberar 502XXXXXXXX (sin necesidad de responder a un aviso)
+      const hubo = liberarCliente(mLiberar[1]);
+      await telegramEnviarAdmin(hubo ? `🔓 Noor retomó el chat con +${mLiberar[1]}.` : `ℹ️ +${mLiberar[1]} no estaba esperando asesor.`, null);
+      return;
+    }
+
     // Solo procesamos si es una RESPUESTA (reply) a uno de nuestros avisos —
     // así evitamos que cualquier mensaje suelto en el chat intente reenviarse.
     const replyToId = mensaje.reply_to_message?.message_id;
-    const replyToTexto = mensaje.reply_to_message?.text || '';
+    const replyToTexto = mensaje.reply_to_message?.text || mensaje.reply_to_message?.caption || '';
     if (!replyToId) {
-      await telegramEnviarAdmin('⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto.', null);
+      await telegramEnviarAdmin(mLiberar ? '⚠️ Usa /liberar como respuesta (Reply) al aviso del cliente, o escribe /liberar 502XXXXXXXX.' : '⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto. Comandos: /pendientes y /liberar.', null);
       return;
     }
 
@@ -493,9 +663,21 @@ app.post('/telegram-webhook', async (req, res) => {
       return;
     }
 
+    if (mLiberar) {
+      const hubo = liberarCliente(telefono);
+      await telegramEnviarAdmin(hubo ? `🔓 Noor retomó el chat con +${telefono}.` : `ℹ️ +${telefono} no estaba esperando asesor.`, null);
+      return;
+    }
+    if (comando.startsWith('/')) { // un comando desconocido jamás se reenvía al cliente
+      await telegramEnviarAdmin('⚠️ Comando no reconocido. Disponibles: /liberar y /pendientes.', null);
+      return;
+    }
+
     await enviarMensaje(telefono, mensaje.text);
+    tocarEspera(telefono);
     // Nota: NO liberamos automáticamente a Noor aquí — dejamos que tú decidas
-    // cuándo terminó la conversación usando /liberar?telefono=...&token=...
+    // cuándo terminó la conversación escribiendo /liberar (como respuesta al aviso del cliente)
+    // en Telegram; si pasan 6 h sin actividad, Noor retoma el chat sola.
     // (así evitamos que Noor y tú respondan al mismo tiempo a media conversación)
     console.log(`[Telegram→WhatsApp] Respuesta del asesor reenviada a ${telefono}`);
 
@@ -662,6 +844,8 @@ app.get('/health', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const estadoCargado = restaurarEsperas(); // los mensajes esperan a que termine (máx. 8 s)
+
 app.listen(PORT, () => {
   console.log(`Noor bot activo en puerto ${PORT}`);
   if (!META_APP_SECRET) console.warn('[Seguridad] META_APP_SECRET no configurado — /webhook NO verifica la firma de Meta. Configúralo en Render.');

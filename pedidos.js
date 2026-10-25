@@ -153,4 +153,116 @@ async function verificarConexion() {
   return true;
 }
 
-module.exports = { crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion };
+// ─── Clientes esperando asesor ───────────────────────────────────────────────
+// Se guardan en la pestaña "Asesor" del MISMO archivo de pedidos (el bot la crea sola si no
+// existe), para que un reinicio o un deploy de Render no libere por error a quien espera.
+// Columnas: telefono | desde | ultima_actividad | estado (Esperando / Liberado)
+const HOJA_ASESOR = 'Asesor';
+const DIAS_CONSERVAR_LIBERADOS = 30;
+const _filaAsesor = new Map();   // teléfono → número de fila en la pestaña
+let _pestanaAsesor = null;       // promesa: la pestaña ya existe
+let _colaAsesor = Promise.resolve();
+
+// Todas las operaciones sobre la pestaña van una tras otra, para que los números de fila no se crucen
+function _enCola(fn) {
+  const p = _colaAsesor.then(fn);
+  _colaAsesor = p.catch(() => {}); // un fallo no bloquea las siguientes
+  return p;
+}
+
+async function _asegurarPestanaAsesor(sheets) {
+  if (_pestanaAsesor) return _pestanaAsesor;
+  _pestanaAsesor = (async () => {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: PEDIDOS_SHEET_ID, fields: 'sheets.properties.title' });
+    const existe = (meta.data.sheets || []).some(s => s.properties && s.properties.title === HOJA_ASESOR);
+    if (!existe) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: PEDIDOS_SHEET_ID,
+        requestBody: { requests: [{ addSheet: { properties: { title: HOJA_ASESOR } } }] }
+      });
+      console.log(`[Asesor] Pestaña "${HOJA_ASESOR}" creada en el Sheet de pedidos`);
+    }
+    const enc = await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A1:D1` });
+    if (!(enc.data.values && enc.data.values[0] && enc.data.values[0][0])) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A1:D1`, valueInputOption: 'RAW',
+        requestBody: { values: [['telefono', 'desde', 'ultima_actividad', 'estado']] }
+      });
+    }
+    return true;
+  })().catch(e => { _pestanaAsesor = null; throw e; });
+  return _pestanaAsesor;
+}
+
+// Lee la pestaña al iniciar. Devuelve [{ telefono, desde, ultima, estado }] (fechas en ms).
+// De paso limpia los "Liberado" de más de 30 días y las filas vacías.
+function cargarEsperasAsesor() {
+  return _enCola(async () => {
+    const sheets = await getSheetsWriteClient();
+    await _asegurarPestanaAsesor(sheets);
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A2:D` });
+    const crudas = res.data.values || [];
+    const limite = Date.now() - DIAS_CONSERVAR_LIBERADOS * 24 * 60 * 60 * 1000;
+    const porTelefono = new Map(); // si un teléfono apareciera dos veces, gana la última fila
+    for (const f of crudas) {
+      const telefono = String((f && f[0]) || '').replace(/\D/g, '');
+      if (!telefono) continue;
+      const desde = Date.parse(f[1]) || Date.now();
+      const ultima = Date.parse(f[2]) || desde;
+      const estado = f[3] === 'Esperando' ? 'Esperando' : 'Liberado';
+      if (estado === 'Esperando' || ultima >= limite) porTelefono.set(telefono, { telefono, desde, ultima, estado });
+    }
+    const finales = [...porTelefono.values()];
+    if (finales.length !== crudas.length) {
+      // Compactar: primero se escriben las filas que se conservan y DESPUÉS se borra lo que sobra,
+      // así un corte a mitad de camino nunca pierde a un cliente que espera.
+      if (finales.length > 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A2:D${finales.length + 1}`, valueInputOption: 'RAW',
+          requestBody: { values: finales.map(f => [f.telefono, new Date(f.desde).toISOString(), new Date(f.ultima).toISOString(), f.estado]) }
+        });
+      }
+      if (crudas.length > finales.length) {
+        await sheets.spreadsheets.values.clear({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A${finales.length + 2}:D${crudas.length + 1}` });
+      }
+      console.log(`[Asesor] Pestaña ordenada: ${crudas.length - finales.length} fila(s) vieja(s) o vacía(s) eliminadas`);
+    }
+    _filaAsesor.clear();
+    finales.forEach((f, i) => _filaAsesor.set(f.telefono, i + 2));
+    return finales;
+  });
+}
+
+// Guarda (o actualiza) a un cliente. estado: 'Esperando' | 'Liberado'. Fechas en ISO.
+function guardarEsperaAsesor(telefono, { desde, ultima, estado }) {
+  const tel = String(telefono || '').replace(/\D/g, '');
+  if (!tel) return Promise.resolve(false);
+  return _enCola(async () => {
+    const sheets = await getSheetsWriteClient();
+    await _asegurarPestanaAsesor(sheets);
+    const fila = [tel, desde, ultima, estado === 'Esperando' ? 'Esperando' : 'Liberado'];
+    let row = _filaAsesor.get(tel);
+    if (row) {
+      // Por si alguien borró o movió filas a mano: comprobamos que esa fila siga siendo de este cliente
+      const chk = await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A${row}:A${row}` });
+      const actual = String((chk.data.values && chk.data.values[0] && chk.data.values[0][0]) || '').replace(/\D/g, '');
+      if (actual !== tel) { _filaAsesor.delete(tel); row = null; }
+    }
+    if (row) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A${row}:D${row}`, valueInputOption: 'RAW',
+        requestBody: { values: [fila] }
+      });
+    } else {
+      const r = await sheets.spreadsheets.values.append({
+        spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_ASESOR}'!A:D`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [fila] }
+      });
+      const m = /!A(\d+):/.exec((r.data && r.data.updates && r.data.updates.updatedRange) || '');
+      if (m) _filaAsesor.set(tel, parseInt(m[1], 10));
+    }
+    return true;
+  });
+}
+
+module.exports = { crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion, cargarEsperasAsesor, guardarEsperaAsesor };
