@@ -102,6 +102,122 @@
   .card-carousel-arrow{ opacity:1; }
 }
 </style>
+
+<!-- Google Analytics 4 + aviso de cookies (tienda) -->
+<script>
+(function () {
+  // ⬇⬇ PEGA AQUÍ tu ID de medición (Analytics → Administrar → Flujos de datos). Es el mismo del sitio de herramientas.
+  var GA_ID = 'G-XXXXXXXXXX';
+  // ⬆⬆ Mientras diga G-XXXXXXXXXX (o sea inválido) NO se carga nada de Google y la tienda funciona igual.
+
+  var activo = /^G-[A-Z0-9]{6,}$/.test(GA_ID) && GA_ID !== 'G-XXXXXXXXXX';
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  window.gtag = gtag;
+
+  // Envía un evento sin romper nunca la tienda si algo falla
+  window.altTrack = function (nombre, params) {
+    if (!activo) return;
+    try { gtag('event', nombre, params || {}); } catch (e) {}
+  };
+  // Producto en el formato de comercio electrónico de GA4
+  window.altItem = function (nombre, marca, tamano, precio, cant) {
+    var id = String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    var it = { item_id: id, item_name: nombre, item_brand: marca, price: precio, quantity: cant || 1 };
+    if (tamano) it.item_variant = tamano;
+    return it;
+  };
+  window.altItemsCarrito = function () {
+    try { return (typeof cart !== 'undefined' ? cart : []).map(function (i) { return altItem(i.name, i.brand, i.size, i.price, i.qty); }); } catch (e) { return []; }
+  };
+  window.altTotalCarrito = function () {
+    try { return (typeof cart !== 'undefined' ? cart : []).reduce(function (s, i) { return s + i.price * i.qty; }, 0); } catch (e) { return 0; }
+  };
+
+  if (!activo) { // sin ID válido: no hay medición, así que tampoco se muestra el enlace de cookies
+    document.addEventListener('DOMContentLoaded', function () { var w = document.getElementById('altCookiesWrap'); if (w) w.parentNode.removeChild(w); });
+    return;
+  }
+
+  // Consentimiento (Consent Mode v2): Europa, Reino Unido y Suiza apagado hasta que acepten
+  gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied',
+    region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB','CH'] });
+  gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'granted' });
+  try {
+    var cc = JSON.parse(localStorage.getItem('althamir_cookies') || 'null');
+    if (cc && cc.v === 1 && Date.now() - cc.t < 31536000000) gtag('consent', 'update', { analytics_storage: cc.a ? 'granted' : 'denied' });
+  } catch (e) {}
+  gtag('js', new Date());
+  gtag('config', GA_ID);
+  var sc = document.createElement('script'); sc.async = true; sc.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID; document.head.appendChild(sc);
+
+  // Clics en WhatsApp (flotante, productos, botella completa...) y hacia el sitio de herramientas
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a || a.id === 'confirmSendBtn') return; // el envío del pedido se mide aparte (whatsapp_order)
+    var h = a.href || '';
+    if (h.indexOf('wa.me/') > -1) {
+      var txt = ''; try { txt = decodeURIComponent(h.split('text=')[1] || ''); } catch (_) {}
+      var tipo = /botella/i.test(txt) ? 'botella' : a.classList.contains('wa-float') ? 'flotante' : (a.classList.contains('btn-wa') || a.id === 'modalWA') ? 'producto' : a.classList.contains('wa-cta-btn') ? 'cta' : 'otro';
+      var card = a.closest ? a.closest('.product-card') : null;
+      var prod = card ? (card.dataset.name || '') : (a.id === 'modalWA' && document.getElementById('modalName') ? document.getElementById('modalName').textContent : '');
+      altTrack('whatsapp_click', prod ? { tipo: tipo, producto: prod } : { tipo: tipo });
+    } else if (/^https?:\/\/herramientas\.althamirgt\.com/.test(h)) {
+      var c = ''; try { c = new URL(h).searchParams.get('utm_content') || ''; } catch (_) {}
+      altTrack('tools_click', { link_content: c });
+    }
+  });
+
+  // ── Aviso de cookies ──
+  var KEY = 'althamir_cookies', DIAS = 365;
+  function leer() { try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.v === 1 && Date.now() - d.t < DIAS * 864e5) return d; } catch (_) {} return null; }
+  function borrar() {
+    var h = location.hostname.split('.'), doms = [''];
+    for (var i = 0; i < h.length - 1; i++) doms.push('.' + h.slice(i).join('.'));
+    doms.push(location.hostname);
+    document.cookie.split(';').forEach(function (c) {
+      var n = c.split('=')[0].trim();
+      if (n === '_ga' || n.indexOf('_ga_') === 0 || n === '_gid' || n === '_gat') {
+        doms.forEach(function (d) { document.cookie = n + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/' + (d ? ';domain=' + d : ''); });
+      }
+    });
+  }
+  function elegir(ok) {
+    try { localStorage.setItem(KEY, JSON.stringify({ v: 1, a: ok, t: Date.now() })); } catch (_) {}
+    gtag('consent', 'update', { analytics_storage: ok ? 'granted' : 'denied' });
+    if (!ok) borrar();
+    var b = document.getElementById('alt-ck'); if (b) b.parentNode.removeChild(b);
+  }
+  function mostrar() {
+    if (document.getElementById('alt-ck')) return;
+    var box = document.createElement('div'); box.id = 'alt-ck'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Aviso de cookies');
+    var p = document.createElement('p');
+    p.appendChild(document.createTextNode('Usamos cookies para medir, de forma agregada, cuántas personas visitan la tienda y así mejorarla. Puedes aceptarlas o rechazarlas. '));
+    var a = document.createElement('a'); a.href = 'https://herramientas.althamirgt.com/privacidad/'; a.textContent = 'Política de privacidad'; p.appendChild(a);
+    var fila = document.createElement('div'); fila.className = 'alt-ck-b';
+    var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'alt-a'; ok.textContent = 'Aceptar';
+    var no = document.createElement('button'); no.type = 'button'; no.className = 'alt-r'; no.textContent = 'Rechazar';
+    ok.addEventListener('click', function () { elegir(true); }); no.addEventListener('click', function () { elegir(false); });
+    fila.appendChild(ok); fila.appendChild(no); box.appendChild(p); box.appendChild(fila); document.body.appendChild(box);
+  }
+  function iniciar() {
+    if (!leer()) mostrar();
+    var l = document.getElementById('altCookiesLink');
+    if (l) l.addEventListener('click', function (e) { e.preventDefault(); mostrar(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
+})();
+</script>
+<style>
+  #alt-ck{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:2147483000;max-width:640px;margin:0 auto;background:#211916;color:#efe6d2;border:1px solid #3a2e29;border-radius:16px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.5);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #alt-ck p{margin:0 0 12px;color:#b9ab8f}
+  #alt-ck a{color:#c9a14a;text-decoration:underline;text-underline-offset:2px}
+  #alt-ck .alt-ck-b{display:flex;gap:8px;flex-wrap:wrap}
+  #alt-ck button{flex:1 1 140px;min-height:44px;border-radius:999px;border:1px solid #c9a14a;font:600 14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;cursor:pointer;padding:10px 16px}
+  #alt-ck .alt-a{background:#c9a14a;color:#17110f}
+  #alt-ck .alt-r{background:transparent;color:#c9a14a}
+  #alt-ck button:focus-visible{outline:2px solid #efe6d2;outline-offset:2px}
+</style>
 </head>
 <body>
 
@@ -752,7 +868,8 @@
 <div class="footer-bottom">© 2026 Althamir · Perfumería Árabe Auténtica · Guatemala · Todos los derechos reservados<br>
   <a href="https://herramientas.althamirgt.com/privacidad/" style="color:inherit;text-decoration:underline;">Política de privacidad</a> ·
   <a href="https://herramientas.althamirgt.com/terminos/" style="color:inherit;text-decoration:underline;">Términos de uso</a> ·
-  <a href="https://herramientas.althamirgt.com/acerca/" style="color:inherit;text-decoration:underline;">Acerca de y contacto</a>
+  <a href="https://herramientas.althamirgt.com/acerca/" style="color:inherit;text-decoration:underline;">Acerca de y contacto</a><span id="altCookiesWrap"> ·
+  <a href="#cookies" id="altCookiesLink" style="color:inherit;text-decoration:underline;">Cookies</a></span>
 </div>
 </footer>
 
@@ -861,6 +978,7 @@ let cart = (function() {
 function openCart() {
   const overlay = document.getElementById('cartOverlay');
   if (overlay) {
+    altTrack('view_cart', { currency: 'GTQ', value: altTotalCarrito(), items: altItemsCarrito() });
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -977,6 +1095,15 @@ document.addEventListener("DOMContentLoaded", function() {
     const pago = params.get('pago');
     const orden = params.get('orden');
     if (pago === 'exito') {
+      try {
+        const snap = JSON.parse(localStorage.getItem('alt_pago_pendiente') || 'null');
+        const tid = orden || ('web-' + Date.now());
+        if (!localStorage.getItem('alt_compra_' + tid)) { // una compra se cuenta una sola vez aunque recarguen
+          altTrack('purchase', { transaction_id: tid, currency: 'GTQ', value: snap ? snap.value : undefined, items: snap ? snap.items : undefined });
+          localStorage.setItem('alt_compra_' + tid, '1');
+        }
+        localStorage.removeItem('alt_pago_pendiente');
+      } catch (_) {}
       showToast(`✅ ¡Pago recibido! ${orden ? 'Orden ' + orden + '. ' : ''}Un asesor confirmará tu pedido en breve.`, 6000);
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (pago === 'cancelado') {
@@ -1125,6 +1252,8 @@ function openModal(card) {
   const name = card.dataset.name;
   const desc = card.dataset.desc;
 
+  try { const sb = card.querySelector('.size-btn'); const p0 = sb ? parseFloat(sb.dataset.price) : undefined; altTrack('view_item', { currency: 'GTQ', value: p0, items: [altItem(name, brand, '', p0)] }); } catch (_) {}
+
   document.getElementById('modalBrand').textContent = brand;
   document.getElementById('modalName').textContent = name;
   document.getElementById('modalDesc').textContent = desc;
@@ -1229,6 +1358,7 @@ function addToCart(card, size, price, priceDisplay) {
   saveCart();
   updateCartUI();
   showCartFab();
+  altTrack('add_to_cart', { currency: 'GTQ', value: price, items: [altItem(name, brand, size, price, 1)] });
 
   // Flash feedback on button
   const btn = card.querySelector('.btn-add-cart');
@@ -1418,6 +1548,8 @@ window.addEventListener('scroll', () => {
 const searchInput = document.getElementById('searchInput');
 if (searchInput) {
   searchInput.addEventListener('input', () => {
+    clearTimeout(window.__altBuscar);
+    window.__altBuscar = setTimeout(() => { const t = searchInput.value.trim(); if (t.length >= 3) altTrack('search', { search_term: t }); }, 900);
     const q = searchInput.value.toLowerCase().trim();
     const allCards = document.querySelectorAll('.product-card');
     const dividers = document.querySelectorAll('.brand-divider');
@@ -1561,6 +1693,10 @@ async function payWithCard() {
   // Si algún producto pasó a "bajo pedido", se quita y el cliente revisa su carrito antes de pagar
   if (quitarNoDisponiblesDelCarrito().length) return;
 
+  altTrack('add_payment_info', { currency: 'GTQ', value: altTotalCarrito(), payment_type: 'tarjeta', items: altItemsCarrito() });
+  // Guardamos lo que se va a pagar: al volver del pago se registra la compra (purchase)
+  try { localStorage.setItem('alt_pago_pendiente', JSON.stringify({ t: Date.now(), value: altTotalCarrito(), items: altItemsCarrito() })); } catch (_) {}
+
   confirmPayBtn.disabled = true;
   confirmPayBtn.textContent = 'Redirigiendo a pago...';
 
@@ -1611,6 +1747,7 @@ function showOrderConfirm() {
   if (quitarNoDisponiblesDelCarrito().length) return;
 
   const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  altTrack('begin_checkout', { currency: 'GTQ', value: total, items: altItemsCarrito() });
 
   // Render resumen
   let html = '';
@@ -1636,6 +1773,7 @@ function showOrderConfirm() {
   confirmSendBtn.href = waUrl;
   confirmSendBtn.onclick = (e) => {
     e.preventDefault(); // registramos el pedido y navegamos nosotros mismos
+    altTrack('whatsapp_order', { currency: 'GTQ', value: total, transaction_id: orderNum, items: altItemsCarrito() });
 
     const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
 
@@ -2106,6 +2244,7 @@ function noorTime() {
 
 function toggleNoor() {
   noorOpen = !noorOpen;
+  if (noorOpen) altTrack('noor_open');
   document.getElementById('noorWindow').classList.toggle('open', noorOpen);
   if (noorOpen && !noorStarted) {
     noorStarted = true;
@@ -2159,6 +2298,7 @@ async function noorSend() {
   if (!text) return;
 
   noorAddMsg('user', text);
+  altTrack('noor_message', { turno: noorHistory.filter(m => m.role === 'user').length + 1 }); // solo cuenta, nunca el texto
   input.value = '';
   document.getElementById('noorQR').innerHTML = '';
   document.getElementById('noorSend').disabled = true;
