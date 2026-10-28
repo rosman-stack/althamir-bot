@@ -825,7 +825,15 @@ app.get('/health', async (req, res) => {
   try {
     await pedidos.verificarConexion();
   } catch (e) {
-    problemas.push(`Sheet de Pedidos inaccesible (revisa el nombre de la pestaña en pedidos.js): ${e.message}`);
+    // Antes todo error decía "revisa el nombre de la pestaña", aunque fuera un fallo pasajero de Google.
+    const codigo = Number(e.code || (e.response && e.response.status));
+    let causa;
+    if (codigo === 400 && /parse range|range/i.test(e.message)) causa = `no encuentro la pestaña: revisa el nombre en pedidos.js (${e.message})`;
+    else if (codigo === 403) causa = `sin permiso: comparte el Sheet de pedidos con la cuenta de servicio como Editor (${e.message})`;
+    else if (codigo === 404) causa = `no encuentro el archivo: revisa PEDIDOS_SHEET_ID (${e.message})`;
+    else if (codigo === 429 || codigo >= 500 || /Internal error/i.test(e.message)) causa = `Google Sheets tuvo un error temporal, incluso tras reintentar (${codigo || 's/c'}: ${e.message}). Suele resolverse solo; no es el nombre de la pestaña.`;
+    else causa = e.message;
+    problemas.push(`Sheet de Pedidos inaccesible: ${causa}`);
   }
 
   const ok = problemas.length === 0;

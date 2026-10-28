@@ -147,10 +147,28 @@ async function buscarPendienteParaConfirmar(telefono, monto, ventanaMinutos = 45
 // Chequeo liviano de conectividad, usado por el monitor de salud — solo lee
 // el encabezado, no escribe nada. Si el nombre de la pestaña (HOJA) está mal,
 // esto falla igual que fallaría un guardado real, pero sin crear un pedido falso.
+// Errores pasajeros de Google (500/503, límite de velocidad, cortes de red): conviene reintentar, no alertar.
+function _errorTransitorio(e) {
+  const c = Number(e && (e.code || (e.response && e.response.status)));
+  return c === 429 || (c >= 500 && c < 600) ||
+    ['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ENOTFOUND', 'ECONNABORTED'].includes(e && e.code) ||
+    /Internal error|backend error|timed? ?out|socket hang up/i.test((e && e.message) || '');
+}
+
 async function verificarConexion() {
-  const sheets = await getSheetsWriteClient();
-  await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA}'!A1:A1` });
-  return true;
+  let ultimo;
+  for (let intento = 0; intento < 3; intento++) {
+    try {
+      const sheets = await getSheetsWriteClient();
+      await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA}'!A1:A1` });
+      return true;
+    } catch (e) {
+      ultimo = e;
+      if (!_errorTransitorio(e) || intento === 2) break;
+      await new Promise(r => setTimeout(r, 700 * (intento + 1))); // 0.7 s y 1.4 s de espera entre intentos
+    }
+  }
+  throw ultimo;
 }
 
 // ─── Clientes esperando asesor ───────────────────────────────────────────────
