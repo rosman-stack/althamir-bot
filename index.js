@@ -626,6 +626,11 @@ app.post('/telegram-webhook', async (req, res) => {
     const comando = mensaje.text.trim();
     const mLiberar = comando.match(/^\/liberar(?:@\w+)?(?:\s+\+?(\d{8,15}))?\s*$/i);
 
+    if (/^\/resumen(?:@\w+)?\s*$/i.test(comando)) {
+      try { await enviarResumenDiario(null); }
+      catch (e) { console.error('[Avisos] /resumen falló:', e.message); await telegramEnviarAdmin('⚠️ No pude armar el resumen ahora (Google Sheets no respondió). Intenta de nuevo en un minuto.', null); }
+      return;
+    }
     if (/^\/pendientes(?:@\w+)?\s*$/i.test(comando)) {
       const lista = [...actividadAsesor].map(([tel, t]) => `+${tel} (hace ${Math.round((Date.now() - t) / 60000)} min)`);
       await telegramEnviarAdmin(lista.length ? `⏳ Clientes esperando asesor:\n${lista.join('\n')}` : '✅ No hay clientes esperando asesor.', null);
@@ -642,7 +647,7 @@ app.post('/telegram-webhook', async (req, res) => {
     const replyToId = mensaje.reply_to_message?.message_id;
     const replyToTexto = mensaje.reply_to_message?.text || mensaje.reply_to_message?.caption || '';
     if (!replyToId) {
-      await telegramEnviarAdmin(mLiberar ? '⚠️ Usa /liberar como respuesta (Reply) al aviso del cliente, o escribe /liberar 502XXXXXXXX.' : '⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto. Comandos: /pendientes y /liberar.', null);
+      await telegramEnviarAdmin(mLiberar ? '⚠️ Usa /liberar como respuesta (Reply) al aviso del cliente, o escribe /liberar 502XXXXXXXX.' : '⚠️ Para responderle al cliente, usa "Responder" (Reply) sobre su mensaje, no escribas suelto. Comandos: /resumen, /pendientes y /liberar.', null);
       return;
     }
 
@@ -669,7 +674,7 @@ app.post('/telegram-webhook', async (req, res) => {
       return;
     }
     if (comando.startsWith('/')) { // un comando desconocido jamás se reenvía al cliente
-      await telegramEnviarAdmin('⚠️ Comando no reconocido. Disponibles: /liberar y /pendientes.', null);
+      await telegramEnviarAdmin('⚠️ Comando no reconocido. Disponibles: /resumen, /pendientes y /liberar.', null);
       return;
     }
 
@@ -852,6 +857,173 @@ app.get('/health', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ═══ AVISOS PROGRAMADOS ═══════════════════════════════════════════════════════
+// 1) Resumen de las 9am (lunes a sábado) en tu Telegram. También con /resumen en cualquier momento.
+// 2) Recordatorio de pedidos "Pendiente de pago" (a las 2 h y a las 24 h), con el mensaje ya escrito.
+// 3) Dentro del resumen: a quién pedirle reseña (5 a 8 días después del pedido) y a quién ofrecerle
+//    recompra (3 semanas), con enlace directo a WhatsApp.
+// Todo se calcula leyendo el Sheet de pedidos; lo ya avisado queda en la pestaña "Avisos".
+const AVISOS_CFG = {
+  pagoPrimerAvisoH: 2, pagoSegundoAvisoH: 24, pagoMaxH: 72,
+  resenaDesdeD: 5, resenaHastaD: 8, recompraDesdeD: 21, recompraHastaD: 26,
+  maxPorLista: 6, maxEnlaces: 4, maxRecordatoriosPorRevision: 6, resumenDesdeHora: 9, resumenHastaHora: 12
+};
+const HORA_MS = 3600 * 1000, DIA_MS = 24 * HORA_MS;
+const avisosCargados = pedidos.cargarAvisos().catch(e => { console.error('[Avisos] No se pudo leer la pestaña Avisos (se seguirá sin memoria de avisos previos):', e.message); });
+
+function fechaGT(ms) { return new Date(ms - 6 * HORA_MS).toISOString().slice(0, 10); }   // Guatemala = UTC-6, sin horario de verano
+function horaGT(ms) { return new Date(ms - 6 * HORA_MS).getUTCHours(); }
+function diaSemanaGT(ms) { return new Date(ms - 6 * HORA_MS).getUTCDay(); }
+function dineroQ(n) { return 'Q' + Math.round(n).toLocaleString('en-US'); }
+function hace(ms) {
+  if (ms < HORA_MS) return `${Math.max(1, Math.round(ms / 60000))} min`;
+  if (ms < 48 * HORA_MS) return `${Math.round(ms / HORA_MS)} h`;
+  return `${Math.round(ms / DIA_MS)} días`;
+}
+function numeroWA(tel) {
+  const d = String(tel || '').replace(/\D/g, '');
+  if (d.length === 8) return '502' + d;           // número local de Guatemala sin código de país
+  return d.length >= 8 ? d : '';
+}
+function enlaceWA(tel, texto) { const n = numeroWA(tel); return n ? `https://wa.me/${n}?text=${encodeURIComponent(texto)}` : '(sin teléfono válido)'; }
+function nombrePila(cliente) { return String(cliente || '').trim().split(/\s+/)[0] || ''; }
+function productoPrincipal(productos) {
+  const items = String(productos || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (items.length !== 1) return 'tu pedido';
+  return items[0].replace(/^\d+\s*x\s*/i, '').replace(/\s*\([^)]*\)\s*$/, '').trim() || 'tu pedido';
+}
+function msgPago(p) {
+  const n = nombrePila(p.cliente);
+  return `Hola${n ? ' ' + n : ''} 😊 Te escribo para saber si pudiste completar el pago de tu pedido ${p.orderId}. Si tuviste algún problema con la tarjeta o prefieres otra forma de pago, dime y te ayudo.`;
+}
+function msgResena(p) {
+  const n = nombrePila(p.cliente), prod = productoPrincipal(p.productos);
+  return `Hola${n ? ' ' + n : ''} 🌟 ¿Qué tal te fue con ${prod}? Me ayudaría muchísimo si me cuentas en una frase cómo te pareció. ¿Te puedo compartir tu comentario, sin tu apellido, en nuestras historias? Si prefieres que no, no hay problema.`;
+}
+function msgRecompra(p) {
+  const n = nombrePila(p.cliente), prod = productoPrincipal(p.productos);
+  return `Hola${n ? ' ' + n : ''} 😊 Han pasado unas semanas desde ${prod === 'tu pedido' ? 'tu pedido' : 'tu ' + prod}. ¿Cómo te fue? Si ya se te está acabando, puedo reservarte otro igual o recomendarte uno distinto para variar. Aquí te dejo el test para encontrar tu siguiente aroma: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=whatsapp&utm_medium=mensaje&utm_campaign=recompra`;
+}
+
+// Agrupa los pedidos del Sheet según lo que hay que hacer con ellos
+function clasificarPedidos(lista, ahora) {
+  const C = AVISOS_CFG;
+  const c = { pendientes: [], porDespachar: [], enviadosViejos: [], resenas: [], recompras: [], ayer: { creados: 0, total: 0, pagados: 0 } };
+  const ayer = fechaGT(ahora - DIA_MS);
+  for (const p of lista) {
+    if (!p.fecha) continue;
+    const edad = ahora - p.fecha;
+    if (fechaGT(p.fecha) === ayer) { c.ayer.creados++; c.ayer.total += p.total; if (['Pagado', 'Enviado', 'Entregado'].includes(p.estado)) c.ayer.pagados++; }
+    if (p.estado === 'Pendiente de pago') { if (edad <= 7 * DIA_MS) c.pendientes.push(p); }
+    else if (p.estado === 'Pagado' || p.estado === 'Procesando') { if (edad <= 10 * DIA_MS) c.porDespachar.push(p); }
+    else if (p.estado === 'Enviado') { if (edad > 4 * DIA_MS && edad <= 30 * DIA_MS) c.enviadosViejos.push(p); }
+    else if (p.estado === 'Entregado') {
+      if (edad >= C.resenaDesdeD * DIA_MS && edad < C.resenaHastaD * DIA_MS && !pedidos.yaAvisado(p.orderId, 'resena')) c.resenas.push(p);
+      if (edad >= C.recompraDesdeD * DIA_MS && edad < C.recompraHastaD * DIA_MS && !pedidos.yaAvisado(p.orderId, 'recompra')) c.recompras.push(p);
+    }
+  }
+  for (const k of ['pendientes', 'porDespachar', 'enviadosViejos', 'resenas', 'recompras']) c[k].sort((a, b) => a.fecha - b.fecha);
+  return c;
+}
+
+function lista(items, max, linea) {
+  const out = items.slice(0, max).map(linea);
+  if (items.length > max) out.push(`   … y ${items.length - max} más`);
+  return out.join('\n');
+}
+
+// Devuelve el resumen en 1 o 2 mensajes (Telegram no admite más de ~4000 caracteres por mensaje)
+function construirResumen(c, ahora) {
+  const M = AVISOS_CFG.maxPorLista;
+  let fecha;
+  try { fecha = new Intl.DateTimeFormat('es-GT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Guatemala' }).format(ahora); }
+  catch (e) { fecha = fechaGT(ahora); }
+  const esperas = [...actividadAsesor].sort((a, b) => a[1] - b[1]);
+  const a = [`☀️ Resumen del día · ${fecha}`, ''];
+  a.push(`🙋 Esperando asesor: ${esperas.length || 'ninguno ✅'}`);
+  if (esperas.length) a.push(lista(esperas, M, ([tel, t]) => `   • +${tel} · hace ${hace(ahora - t)}`));
+  const sumaPend = c.pendientes.reduce((s, p) => s + p.total, 0);
+  a.push('', `💳 Pendientes de pago: ${c.pendientes.length ? `${c.pendientes.length} · ${dineroQ(sumaPend)}` : 'ninguno ✅'}`);
+  if (c.pendientes.length) a.push(lista(c.pendientes, M, p => `   • ${p.orderId} · ${nombrePila(p.cliente) || 'cliente'} · ${dineroQ(p.total)} · hace ${hace(ahora - p.fecha)}`));
+  a.push('', `📦 Por despachar (pagados o en proceso): ${c.porDespachar.length || 'ninguno ✅'}`);
+  if (c.porDespachar.length) a.push(lista(c.porDespachar, M, p => `   • ${p.orderId} · ${nombrePila(p.cliente) || 'cliente'} · ${dineroQ(p.total)} · ${p.estado} · hace ${hace(ahora - p.fecha)}`));
+  if (c.enviadosViejos.length) {
+    a.push('', `🚚 Enviados hace más de 4 días sin marcar "Entregado": ${c.enviadosViejos.length}`);
+    a.push(lista(c.enviadosViejos, 4, p => `   • ${p.orderId} · ${nombrePila(p.cliente) || 'cliente'} · guía ${p.guia || 's/g'}`));
+  }
+  a.push('', `📈 Ayer: ${c.ayer.creados ? `${c.ayer.creados} pedido(s) · ${dineroQ(c.ayer.total)} · ${c.ayer.pagados} pagado(s) o enviado(s)` : 'sin pedidos nuevos'}`);
+  const partes = [a.join('\n')];
+  const K = AVISOS_CFG.maxEnlaces, b = [];
+  if (c.resenas.length) {
+    b.push(`🌟 Pídeles una reseña (${c.resenas.length}) — toca el enlace, el mensaje ya viene escrito:`);
+    c.resenas.slice(0, K).forEach(p => b.push(`• ${nombrePila(p.cliente) || 'Cliente'} (${productoPrincipal(p.productos)}):\n${enlaceWA(p.telefono, msgResena(p))}`));
+    if (c.resenas.length > K) b.push(`… y ${c.resenas.length - K} más mañana`);
+  }
+  if (c.recompras.length) {
+    if (b.length) b.push('');
+    b.push(`🔁 Ofréceles recompra (${c.recompras.length}) — ya van ~3 semanas:`);
+    c.recompras.slice(0, K).forEach(p => b.push(`• ${nombrePila(p.cliente) || 'Cliente'} (${productoPrincipal(p.productos)}):\n${enlaceWA(p.telefono, msgRecompra(p))}`));
+    if (c.recompras.length > K) b.push(`… y ${c.recompras.length - K} más mañana`);
+  }
+  if (b.length) partes.push(b.join('\n'));
+  return partes;
+}
+
+// claveRegistro = fecha del día (envío programado) o null (cuando lo pides tú con /resumen)
+async function enviarResumenDiario(claveRegistro) {
+  await avisosCargados;
+  const ahora = Date.now();
+  const c = clasificarPedidos(await pedidos.listarPedidos(), ahora);
+  for (const parte of construirResumen(c, ahora)) await telegramEnviarAdmin(parte, null);
+  if (claveRegistro) {
+    await pedidos.registrarAviso(claveRegistro, 'resumen');
+    // Las reseñas y recompras mostradas hoy no se repiten mañana
+    for (const p of c.resenas.slice(0, AVISOS_CFG.maxEnlaces)) pedidos.registrarAviso(p.orderId, 'resena').catch(() => {});
+    for (const p of c.recompras.slice(0, AVISOS_CFG.maxEnlaces)) pedidos.registrarAviso(p.orderId, 'recompra').catch(() => {});
+  }
+}
+
+// Recordatorio individual de pagos pendientes: a las 2 h y a las 24 h (después de 72 h ya no insiste)
+async function enviarRecordatoriosPago() {
+  const C = AVISOS_CFG, ahora = Date.now();
+  let enviados = 0;
+  for (const p of await pedidos.listarPedidos()) {
+    if (p.estado !== 'Pendiente de pago' || !p.fecha) continue;
+    const edad = ahora - p.fecha;
+    if (edad < C.pagoPrimerAvisoH * HORA_MS || edad > C.pagoMaxH * HORA_MS) continue;
+    const tipo = edad >= C.pagoSegundoAvisoH * HORA_MS ? 'pago2' : 'pago1';
+    if (pedidos.yaAvisado(p.orderId, tipo)) continue;
+    if (enviados >= C.maxRecordatoriosPorRevision) break;
+    await telegramEnviarAdmin(
+      `💳 Pedido sin pagar · ${p.orderId}\n${p.cliente || 'Cliente'} · ${dineroQ(p.total)} · hace ${hace(edad)}\n` +
+      (tipo === 'pago2' ? '⏰ Segundo recordatorio (más de 24 h)\n' : '') +
+      `Toca para escribirle, el mensaje ya viene escrito:\n${enlaceWA(p.telefono, msgPago(p))}`, null);
+    await pedidos.registrarAviso(p.orderId, tipo);
+    if (tipo === 'pago2') pedidos.registrarAviso(p.orderId, 'pago1').catch(() => {});
+    enviados++;
+  }
+  return enviados;
+}
+
+let avisosEnCurso = false;
+async function revisarAvisos() { // se ejecuta cada 15 minutos
+  if (avisosEnCurso) return;
+  avisosEnCurso = true;
+  try {
+    await avisosCargados;
+    const ahora = Date.now(), C = AVISOS_CFG, hoy = fechaGT(ahora), h = horaGT(ahora);
+    if (diaSemanaGT(ahora) !== 0 && h >= C.resumenDesdeHora && h < C.resumenHastaHora && !pedidos.yaAvisado(hoy, 'resumen')) {
+      await enviarResumenDiario(hoy);
+    }
+    if (enHorario(new Date(ahora))) await enviarRecordatoriosPago();
+  } catch (e) {
+    console.error('[Avisos] Error en la revisión programada:', e.message);
+  } finally { avisosEnCurso = false; }
+}
+setInterval(revisarAvisos, 15 * 60 * 1000).unref();
+setTimeout(revisarAvisos, 30 * 1000).unref();
+
 const estadoCargado = restaurarEsperas(); // los mensajes esperan a que termine (máx. 8 s)
 
 app.listen(PORT, () => {

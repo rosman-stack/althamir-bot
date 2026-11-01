@@ -1,0 +1,334 @@
+[
+ {
+  "marca": "Lattafa",
+  "nombre": "Yara Moi",
+  "descripcion": "Floral oriental femenino. Durazno y jazmín en la salida. Corazón de caramelo y ámbar cálido. Base de pachulí y sándalo. Dulce, cremoso y envolvente.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_002_vis3s7.png",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_003_e0kg5w.png",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_004_lrhn7a.png"
+  ],
+  "ml5": 40,
+  "ml10": 65
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Yara Rosa",
+  "descripcion": "Vainilla oriental femenino. Heliotropo, orquídea y mandarina en la salida. Corazón de acuerdo goloso y frutas tropicales. Base de vainilla, almizcle y sándalo. Dulce, adictivo y de excelente proyección.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776008984/1775766573908_idoxoj.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_006_derlm4.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_007_iawnyj.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_008_exf8z7.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 65
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Yara Tous",
+  "descripcion": "Frutal tropical femenino. Coco, mango y maracuyá en la salida. Corazón floral de jazmín, heliotropo y azahar. Base de vainilla, cachemira y almizcle. Vibrante y perfecta para días cálidos.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_010_kg0v3a.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_011_kr0vpa.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 65
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Asad",
+  "descripcion": "Oriental especiado masculino. Pimienta negra, tabaco y piña en la salida. Corazón de pachulí, café e iris. Base ambarada de vainilla, madera seca y labdano. Cálido, intenso y adictivo.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_013_jdt9er.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_014_skzicv.jpg"
+  ],
+  "ml5": 45,
+  "ml10": 75
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Ra'ed Luxe",
+  "descripcion": "Aromático afrutado unisex. Sandía, piña y pimienta rosa en la salida. Corazón herbal de lavanda y salvia. Base de vetiver, sándalo, ámbar y almizcle. Fresco, frutal y muy versátil.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776007678/1775701097875_o8hxvj.png",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_016_dcv5j2.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_017_lqei0l.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_018_da975q.jpg"
+  ],
+  "ml5": 35,
+  "ml10": 60
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Emeer",
+  "descripcion": "Amaderado aromático unisex. Limón, bergamota y bayas de enebro en la salida. Corazón de té blanco, sándalo y cardamomo. Base de ámbar gris, cedro y pachulí. Elegante y sofisticado.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_020_ikrbow.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_021_dotd9x.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_022_bm6geb.jpg"
+  ],
+  "ml5": 50,
+  "ml10": 80
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Bade'e Al Oud Amethyst",
+  "descripcion": "Floral oriental unisex. Pimienta rosa y bergamota en la salida. Corazón de rosa turca, rosa búlgara y jazmín. Base de oud, ámbar y vainilla. Rico, floral y de larga duración.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776009030/1775623217558_kqe5hw.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_030_m48agw.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_031_diurl2.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Nebras",
+  "descripcion": "Gourmand oriental unisex. Frutos rojos y mandarina en la salida. Corazón de vainilla, cacao y rosa. Base de haba tonka, ámbar y almizcle. Dulce, acogedor y muy adictivo.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_033_q2anc7.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_034_kh2ybc.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_035_roahzy.jpg"
+  ],
+  "ml5": 45,
+  "ml10": 75
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Fakhar Black",
+  "descripcion": "Aromático afrutado masculino. Manzana, bergamota y jengibre en la salida. Corazón de lavanda, salvia y bayas de enebro. Base de haba tonka, cedro y amberwood. Fresco, versátil y muy proyectante.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_036_st31p9.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_037_fgywwd.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_038_rnmmhw.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Fakhar Gold",
+  "descripcion": "Floral amaderado unisex. Notas cítricas y solares en la salida. Corazón de tuberosa con notas solares. Base de ámbar, cachemira y cuero. Elegante, seductor y de larga permanencia.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776007677/1775766981111_opsqsi.png",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_040_caltpl.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_041_uh8hst.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_042_ug8ujx.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Fakhar Rose",
+  "descripcion": "Floral femenino exuberante. Frutas, lirio y granada en la salida. Corazón de tuberosa, jazmín, gardenia y rosa. Base de vainilla, almizcle blanco, sándalo y ambroxán. Romántico, dulce y muy proyectante.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_044_vbjlew.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_045_azcyhr.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Najdia Intense",
+  "descripcion": "Acuático afrutado masculino. Piña, manzana, menta y jengibre en la salida. Corazón acuático de lavanda y geranio. Base de haba tonka, sándalo, almizcle y pachulí. Fresco, marino y adictivo.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_047_znngst.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_048_raxura.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Ejaazi",
+  "descripcion": "Oriental amaderado unisex. Cítricos, naranja y lavanda en la salida. Corazón de pimienta, pachulí y lirio. Base intensa de ambroxán, cedro y vetiver. Proyección excepcional y muy duradero.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776007611/1775769082602_cwms0w.png",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_050_o19xay.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Ajwad",
+  "descripcion": "Amaderado floral unisex. Notas frutales en la salida. Corazón de rosa y jazmín. Base de vainilla, almizcle, ámbar y cedro. Potente, floral y envolvente.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_052_ixq6oq.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_053_v99tk1.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_054_xn0kkc.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Lattafa",
+  "nombre": "Qimmah",
+  "descripcion": "Gourmand oriental femenino. Almendra cremosa y café en la salida. Corazón de nardos, jazmín y haba tonka. Base de vainilla, cacao y sándalo. Oscuro, seductor y adictivo.",
+  "categoria": "Lattafa",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776709597/1776709527826_p4olsh.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776709615/1776709178439_g6fmod.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776709615/1775622617826_mhole1.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776709616/Qimmah-for-Women-Lattafa-Perfumes-para-Mujeres-perfume-card_2_lkh4fx.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Armaf · Odyssey",
+  "nombre": "Mandarin Sky",
+  "descripcion": "Cítrico especiado masculino. Mandarina brillante, jengibre picante y madera cálida. Fresco, moderno y seductor.",
+  "categoria": "Armaf",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_056_d6voqx.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_057_beok1j.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Armaf · Odyssey",
+  "nombre": "Odyssey Limoni",
+  "descripcion": "Acuático cítrico fresco. Limón italiano, menta helada y almizcle marino. Ligero y vivaz.",
+  "categoria": "Armaf",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_059_dig2zg.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_060_p02mpl.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Armaf · Odyssey",
+  "nombre": "Odyssey Homme White",
+  "descripcion": "Oriental fougère masculino. Pimienta rosa, yuzu y toronja se abren hacia un corazón de hojas de violeta y notas marinas. Base de ámbar cálido, amberwood y madera de gaiac. Fresco, cálido y versátil.",
+  "categoria": "Armaf",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776656402/1776231774510_yazb2j.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776656402/1776231724436_jb1gwv.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776656590/Odyssey-Homme-White-Edition-Armaf-para-Hombres-perfume-card_rxqsre.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776656402/1776231901826_ajrvzy.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Al Haramain",
+  "nombre": "Amber Oud Gold Edition",
+  "descripcion": "Ámbar y oud de la más alta calidad. Terroso, cálido y profundamente sensual. La alternativa árabe al Xerjoff Erba Pura.",
+  "categoria": "Al Haramain",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_062_sco7dr.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_063_n0irks.jpg"
+  ],
+  "ml5": 50,
+  "ml10": 90
+ },
+ {
+  "marca": "Maison Alhambra",
+  "nombre": "Avant",
+  "descripcion": "Amaderado aromático masculino. Notas verdes, bergamota y cedro con base de almizcle. Sofisticado y contemporáneo.",
+  "categoria": "Maison Alhambra",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_065_rukmxx.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_066_uk4rdm.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Afnan",
+  "nombre": "9am Dive",
+  "descripcion": "Acuático marino fresco. Ozono, bergamota y madera marina. Fresco, dinámico y de excelente proyección.",
+  "categoria": "Afnan",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/v1776009056/1775622313661_nro0qj.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_068_itogga.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_069_ifbikt.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ },
+ {
+  "marca": "Bharara",
+  "nombre": "King",
+  "descripcion": "Oriental amaderado masculino de lujo. Ámbar, cuero ahumado y madera de oud. Poderoso y de larga proyección.",
+  "categoria": "Bharara",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_071_vuvblp.jpg"
+  ],
+  "ml5": 80,
+  "ml10": 125
+ },
+ {
+  "marca": "French Avenue",
+  "nombre": "Liquid Brun",
+  "descripcion": "Oriental especiado unisex. Canela, vainilla y madera ahumada. Cálido, sensual y envolvente. Un otoño en frasco.",
+  "categoria": "French Avenue",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_073_wcghxn.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_074_ba2oxa.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_075_p8deyd.jpg"
+  ],
+  "ml5": 50,
+  "ml10": 90
+ },
+ {
+  "marca": "Emper",
+  "nombre": "Phantom My Hero",
+  "descripcion": "Amaderado aromático masculino. Lavanda fresca, vainilla cálida y cedro. Versátil y adictivo.",
+  "categoria": "Emper",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_077_qh4aub.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_078_sxv8cp.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_079_fvcgud.jpg"
+  ],
+  "ml5": 50,
+  "ml10": 80
+ },
+ {
+  "marca": "Rayhaan",
+  "nombre": "Rayhaan Elixir",
+  "descripcion": "Oriental amaderado árabe de alta distinción. Oud de primera calidad, especias orientales y resinas preciosas. Sofisticado, misterioso y de excepcional longevidad.",
+  "categoria": "Rayhaan",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_080_guqyxr.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/w_1200,f_auto,q_auto/imagen_081_uy8idg.jpg"
+  ],
+  "ml5": 50,
+  "ml10": 80
+ },
+ {
+  "marca": "Rasasi",
+  "nombre": "Hawas for Him",
+  "descripcion": "Aromático acuático masculino. Manzana, bergamota, limón y canela en la salida. Corazón acuático de ciruela, cardamomo y azahar. Base de ámbar gris, almizcle, pachulí y madera. Fresco, vibrante y de excelente proyección.",
+  "categoria": "Rasasi",
+  "imagenes": [
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776657266/1776232069392_j7uf8r.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776657266/1776232112292_pbsazl.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776657286/Hawas-for-Him-Rasasi-para-Hombres-perfume-card_bmejuv.jpg",
+   "https://res.cloudinary.com/dwnqasp3x/image/upload/q_auto/f_auto/v1776657247/1776232156745_af42vo.jpg"
+  ],
+  "ml5": 40,
+  "ml10": 70
+ }
+]

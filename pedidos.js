@@ -283,4 +283,81 @@ function guardarEsperaAsesor(telefono, { desde, ultima, estado }) {
   });
 }
 
-module.exports = { crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion, cargarEsperasAsesor, guardarEsperaAsesor };
+// ─── Lectura de pedidos para el resumen diario y los avisos ───────────────────
+// Devuelve todos los pedidos del Sheet ya ordenados en campos (fecha en ms, total numérico, teléfono solo dígitos).
+async function listarPedidos() {
+  const sheets = await getSheetsWriteClient();
+  const filas = await _leerTodasLasFilas(sheets);
+  const lista = [];
+  for (let i = 1; i < filas.length; i++) {
+    const f = filas[i];
+    if (!f || !f[0]) continue;
+    const fecha = Date.parse(f[1]);
+    lista.push({
+      fila: i + 1, orderId: String(f[0]), fecha: Number.isFinite(fecha) ? fecha : null,
+      cliente: String(f[2] || ''), telefono: String(f[3] || '').replace(/\D/g, ''),
+      productos: String(f[5] || ''), total: parseFloat(String(f[6] || '').replace(/[^0-9.]/g, '')) || 0,
+      canal: String(f[7] || ''), estado: String(f[8] || '').trim(), guia: String(f[9] || '')
+    });
+  }
+  return lista;
+}
+
+// ─── Avisos ya enviados ──────────────────────────────────────────────────────
+// Pestaña "Avisos" del mismo archivo (el bot la crea sola): clave | tipo | enviado.
+// Sirve para no repetir un recordatorio ni el resumen del día aunque Render se reinicie.
+const HOJA_AVISOS = 'Avisos';
+const _avisosHechos = new Set(); // "clave|tipo"
+let _pestanaAvisos = null;
+
+async function _asegurarPestanaAvisos(sheets) {
+  if (_pestanaAvisos) return _pestanaAvisos;
+  _pestanaAvisos = (async () => {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: PEDIDOS_SHEET_ID, fields: 'sheets.properties.title' });
+    const existe = (meta.data.sheets || []).some(s => s.properties && s.properties.title === HOJA_AVISOS);
+    if (!existe) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: PEDIDOS_SHEET_ID,
+        requestBody: { requests: [{ addSheet: { properties: { title: HOJA_AVISOS } } }] }
+      });
+      console.log(`[Avisos] Pestaña "${HOJA_AVISOS}" creada en el Sheet de pedidos`);
+    }
+    const enc = await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_AVISOS}'!A1:C1` });
+    if (!(enc.data.values && enc.data.values[0] && enc.data.values[0][0])) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_AVISOS}'!A1:C1`, valueInputOption: 'RAW',
+        requestBody: { values: [['clave', 'tipo', 'enviado']] }
+      });
+    }
+    return true;
+  })().catch(e => { _pestanaAvisos = null; throw e; });
+  return _pestanaAvisos;
+}
+
+function cargarAvisos() {
+  return _enCola(async () => {
+    const sheets = await getSheetsWriteClient();
+    await _asegurarPestanaAvisos(sheets);
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_AVISOS}'!A2:C` });
+    for (const f of (res.data.values || [])) if (f && f[0] && f[1]) _avisosHechos.add(`${f[0]}|${f[1]}`);
+    return _avisosHechos.size;
+  });
+}
+
+function yaAvisado(clave, tipo) { return _avisosHechos.has(`${clave}|${tipo}`); }
+
+// Primero se anota en memoria (así nunca se repite dentro de la misma sesión) y luego en el Sheet.
+function registrarAviso(clave, tipo) {
+  _avisosHechos.add(`${clave}|${tipo}`);
+  return _enCola(async () => {
+    const sheets = await getSheetsWriteClient();
+    await _asegurarPestanaAvisos(sheets);
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: PEDIDOS_SHEET_ID, range: `'${HOJA_AVISOS}'!A:C`, valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [[celda(clave, 60), celda(tipo, 20), new Date().toISOString()]] }
+    });
+    return true;
+  });
+}
+
+module.exports = { listarPedidos, cargarAvisos, yaAvisado, registrarAviso, crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion, cargarEsperasAsesor, guardarEsperaAsesor };

@@ -218,6 +218,50 @@
   #alt-ck .alt-r{background:transparent;color:#c9a14a}
   #alt-ck button:focus-visible{outline:2px solid #efe6d2;outline-offset:2px}
 </style>
+<style id="marcas3d">
+/* ══ MARCAS: barra deslizable con pistas, movimiento 3D y banner de marca ══ */
+.filter-section{perspective:900px}
+.filter-inner{padding-right:56px;scroll-padding:0 56px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.filter-btn{scroll-snap-align:center;transform-style:preserve-3d;backface-visibility:hidden}
+.filter-btn.active{text-shadow:0 0 14px rgba(201,168,76,.5)}
+.filter-btn.flip3d{animation:pill3d .7s cubic-bezier(.22,.9,.3,1)}
+@keyframes pill3d{0%{transform:rotateX(0) translateZ(0)}30%{transform:rotateX(-80deg) translateZ(34px)}65%{transform:rotateX(12deg) translateZ(10px)}100%{transform:rotateX(0) translateZ(0)}}
+/* sombras en los bordes y flechas: avisan que la barra se desliza */
+.filter-section::before,.filter-section::after{content:'';position:absolute;top:0;bottom:0;width:48px;pointer-events:none;z-index:3;opacity:0;transition:opacity .25s}
+.filter-section::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.filter-section::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
+.filter-section.tiene-izq::before,.filter-section.tiene-der::after{opacity:1}
+.filter-flecha{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:34px;height:34px;border-radius:50%;border:1px solid var(--gold-border);background:var(--bg2);color:var(--gold);font-size:20px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
+.filter-flecha.izq{left:6px}
+.filter-flecha.der{right:6px}
+.filter-section.tiene-izq .filter-flecha.izq,.filter-section.tiene-der .filter-flecha.der{display:flex}
+@media (hover:none){.filter-flecha{display:none!important}}
+/* tarjetas: entran con giro en 3D, una tras otra */
+#productsGrid,.brand-grid{perspective:1400px}
+.product-card.rise3d{animation:tarjeta3d .8s cubic-bezier(.2,.8,.2,1) var(--d,0ms) backwards;transform-origin:50% 100%}
+@keyframes tarjeta3d{from{opacity:0;transform:rotateX(-38deg) rotateY(16deg) translateZ(-140px) translateY(46px)}to{opacity:1;transform:none}}
+/* banner con el nombre de la marca elegida */
+.marca-banner{display:none;text-align:center;margin:0 auto 40px;perspective:900px}
+.marca-banner.visible{display:block}
+.marca-banner .mb-nombre{font-family:'Playfair Display',serif;font-size:clamp(32px,8vw,64px);color:var(--gold);letter-spacing:4px;transform-origin:50% 0;animation:banner3d .9s cubic-bezier(.2,.8,.2,1) backwards}
+.marca-banner .mb-sub{font-size:10px;letter-spacing:5px;text-transform:uppercase;color:var(--text-muted);margin-top:10px;animation:bannerSub .9s .15s ease backwards}
+@keyframes banner3d{from{opacity:0;transform:rotateX(-85deg) translateZ(-60px)}to{opacity:1;transform:none}}
+@keyframes bannerSub{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.filter-btn.flip3d,.product-card.rise3d,.marca-banner .mb-nombre,.marca-banner .mb-sub{animation:none!important}}
+</style>
+<style id="faq-estilos">
+.faq-lista{margin-top:44px}
+.faq-item{border:1px solid var(--gold-border);border-radius:14px;margin:0 0 12px;background:var(--bg2);transition:border-color .25s}
+.faq-item[open]{border-color:var(--gold)}
+.faq-item summary{cursor:pointer;list-style:none;padding:18px 54px 18px 22px;position:relative;font-size:15px;color:var(--text)}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'+';position:absolute;right:22px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:22px}
+.faq-item[open] summary::after{content:'\2212'}
+.faq-item summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:14px}
+.faq-resp{padding:0 22px 20px;color:var(--text-dim);line-height:1.75;font-size:14px}
+.faq-resp a{color:var(--gold)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿Qué es un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Es una porción de un perfume original, pasada del frasco grande a un atomizador de 5 o 10 ml. Es el mismo perfume en otro envase: te permite probarlo varios días antes de decidir si compras el frasco completo."}}, {"@type": "Question", "name": "¿Los perfumes son originales?", "acceptedAnswer": {"@type": "Answer", "text": "Sí. Trabajamos con perfumes originales de proveedores confiables en Estados Unidos. Si tienes cualquier duda sobre un producto, escríbenos y te ayudamos."}}, {"@type": "Question", "name": "¿Cuántos sprays rinde un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Cada mililitro da unos 10 sprays. Un decant de 10 ml rinde alrededor de 100 sprays (unos 20 días con 5 sprays al día) y uno de 5 ml, unos 50."}}, {"@type": "Question", "name": "¿Cómo hago mi pedido?", "acceptedAnswer": {"@type": "Answer", "text": "Agrega tus decants al carrito y envía el pedido por WhatsApp, o paga con tarjeta desde la tienda. Después puedes ver el estado de tu pedido en la sección «Mis pedidos» con tu número de teléfono."}}, {"@type": "Question", "name": "¿Cuánto cuesta el envío y a dónde llegan?", "acceptedAnswer": {"@type": "Answer", "text": "Enviamos solo dentro de Guatemala: Q30 a la capital y Q40 al interior. El tiempo de entrega se confirma al hacer tu pedido."}}, {"@type": "Question", "name": "¿Qué formas de pago aceptan?", "acceptedAnswer": {"@type": "Answer", "text": "Puedes pagar con tarjeta desde la tienda o hacer tu pedido por WhatsApp. Si prefieres otra forma de pago, consúltanos por WhatsApp y te confirmamos las opciones."}}, {"@type": "Question", "name": "¿Venden botellas completas?", "acceptedAnswer": {"@type": "Answer", "text": "Sí, las cotizamos con un asesor perfume por perfume. Escríbenos por WhatsApp con el perfume y el tamaño que buscas."}}, {"@type": "Question", "name": "¿Y si el perfume que busco no está en la tienda?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp: con gusto consultamos si podemos conseguirlo."}}, {"@type": "Question", "name": "¿Cuál es su horario de atención?", "acceptedAnswer": {"@type": "Answer", "text": "Lunes a sábado de 9am a 8pm. Fuera de ese horario te respondemos en cuanto abramos."}}, {"@type": "Question", "name": "¿Cómo sé qué aroma me conviene?", "acceptedAnswer": {"@type": "Answer", "text": "Haz el test gratis de 3 preguntas, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos."}}, {"@type": "Question", "name": "¿Cómo debo guardar mi decant?", "acceptedAnswer": {"@type": "Answer", "text": "Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra guía para guardar perfumes y decants."}}, {"@type": "Question", "name": "¿Hacen ventas al mayoreo o regalos corporativos?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp con la cantidad de unidades y la fecha en que lo necesitas, y un asesor te prepara una propuesta."}}]}</script>
 </head>
 <body>
 
@@ -838,6 +882,29 @@
   </div>
 </section>
 
+<section id="faq" style="padding:90px 24px;position:relative;z-index:1">
+  <div style="max-width:820px;margin:0 auto">
+    <div class="section-header">
+      <p class="section-label">Preguntas frecuentes</p>
+      <h2 class="section-title">Lo que más nos preguntan</h2>
+    </div>
+    <div class="faq-lista">
+      <details class="faq-item"><summary>¿Qué es un decant?</summary><div class="faq-resp">Es una porción de un perfume original, pasada del frasco grande a un atomizador de 5 o 10 ml. Es el mismo perfume en otro envase: te permite probarlo varios días antes de decidir si compras el frasco completo.</div></details>
+      <details class="faq-item"><summary>¿Los perfumes son originales?</summary><div class="faq-resp">Sí. Trabajamos con perfumes originales de proveedores confiables en Estados Unidos. Si tienes cualquier duda sobre un producto, escríbenos y te ayudamos.</div></details>
+      <details class="faq-item"><summary>¿Cuántos sprays rinde un decant?</summary><div class="faq-resp">Cada mililitro da unos 10 sprays. Un decant de 10 ml rinde alrededor de 100 sprays (unos 20 días con 5 sprays al día) y uno de 5 ml, unos 50.</div></details>
+      <details class="faq-item"><summary>¿Cómo hago mi pedido?</summary><div class="faq-resp">Agrega tus decants al carrito y envía el pedido por WhatsApp, o paga con tarjeta desde la tienda. Después puedes ver el estado de tu pedido en la sección «Mis pedidos» con tu número de teléfono.</div></details>
+      <details class="faq-item"><summary>¿Cuánto cuesta el envío y a dónde llegan?</summary><div class="faq-resp">Enviamos solo dentro de Guatemala: Q30 a la capital y Q40 al interior. El tiempo de entrega se confirma al hacer tu pedido.</div></details>
+      <details class="faq-item"><summary>¿Qué formas de pago aceptan?</summary><div class="faq-resp">Puedes pagar con tarjeta desde la tienda o hacer tu pedido por WhatsApp. Si prefieres otra forma de pago, consúltanos por WhatsApp y te confirmamos las opciones.</div></details>
+      <details class="faq-item"><summary>¿Venden botellas completas?</summary><div class="faq-resp">Sí, las cotizamos con un asesor perfume por perfume. <a href="https://wa.me/50252547623?text=Hola%20Althamir%20%F0%9F%91%8B%20Quiero%20cotizar%20la%20botella%20completa%20de..." target="_blank" rel="noopener">Escríbenos por WhatsApp</a> con el perfume y el tamaño que buscas.</div></details>
+      <details class="faq-item"><summary>¿Y si el perfume que busco no está en la tienda?</summary><div class="faq-resp">Escríbenos por WhatsApp: con gusto consultamos si podemos conseguirlo.</div></details>
+      <details class="faq-item"><summary>¿Cuál es su horario de atención?</summary><div class="faq-resp">Lunes a sábado de 9am a 8pm. Fuera de ese horario te respondemos en cuanto abramos.</div></details>
+      <details class="faq-item"><summary>¿Cómo sé qué aroma me conviene?</summary><div class="faq-resp">Haz el <a href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-test">test gratis de 3 preguntas</a>, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos.</div></details>
+      <details class="faq-item"><summary>¿Cómo debo guardar mi decant?</summary><div class="faq-resp">Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra <a href="https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=tienda&amp;utm_medium=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-guardar">guía para guardar perfumes y decants</a>.</div></details>
+      <details class="faq-item"><summary>¿Hacen ventas al mayoreo o regalos corporativos?</summary><div class="faq-resp">Escríbenos por WhatsApp con la cantidad de unidades y la fecha en que lo necesitas, y un asesor te prepara una propuesta.</div></details>
+    </div>
+  </div>
+</section>
+
 <footer>
 <div class="footer-inner">
   <div class="footer-col">
@@ -1123,33 +1190,128 @@ function waLink(name) {
 const WA_SVG_STR = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
 const IG_SVG_STR = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
 
-// Filter by brand
+// Filter by brand — con movimiento 3D, banner de marca y redirección al catálogo
 const filterBtns = document.querySelectorAll('.filter-btn');
 const cards = document.querySelectorAll('.product-card');
 const dividers = document.querySelectorAll('.brand-divider');
+const REDUCIR_MOV = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const barraFiltros = document.querySelector('.filter-section');
+const barraInner = document.querySelector('.filter-inner');
+
+// Muestra solo la marca elegida. Se vuelven a leer las tarjetas en cada clic, así también
+// cuentan las que el Sheet crea después de cargar la página (antes se quedaban sin filtrar).
+function aplicarFiltroMarca(filter) {
+  const todas = document.querySelectorAll('.product-card');
+  todas.forEach(card => {
+    const cat = card.dataset.category || '';
+    card.classList.toggle('hidden', !(filter === 'all' || cat === filter));
+  });
+  document.querySelectorAll('.brand-section').forEach(section => {
+    const sectionCards = section.querySelectorAll('.product-card');
+    const allHidden = Array.from(sectionCards).every(c => c.classList.contains('hidden'));
+    section.style.display = allHidden ? 'none' : '';
+  });
+  const visibles = Array.from(todas).filter(c => !c.classList.contains('hidden'));
+  updateCounter(visibles.length, todas.length);
+  return visibles;
+}
+
+// Banner con el nombre de la marca (entra girando en 3D) y cuántas fragancias tiene
+function mostrarBannerMarca(filter, n) {
+  const sec = document.getElementById('catalogo');
+  if (!sec) return null;
+  let b = document.getElementById('marcaBanner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'marcaBanner';
+    b.className = 'marca-banner';
+    b.setAttribute('aria-live', 'polite');
+    sec.insertBefore(b, document.getElementById('productsGrid'));
+  }
+  if (filter === 'all') { b.classList.remove('visible'); b.textContent = ''; return null; }
+  b.textContent = '';
+  const nombre = document.createElement('div'); nombre.className = 'mb-nombre'; nombre.textContent = '✦ ' + filter + ' ✦';
+  const sub = document.createElement('div'); sub.className = 'mb-sub'; sub.textContent = n + (n === 1 ? ' fragancia' : ' fragancias');
+  b.appendChild(nombre); b.appendChild(sub);
+  b.classList.add('visible');
+  return b;
+}
+
+// Las tarjetas visibles entran con un giro en 3D, una tras otra
+function animarTarjetas3D(visibles) {
+  if (REDUCIR_MOV) return;
+  visibles.forEach((c, i) => { c.classList.remove('rise3d'); c.style.setProperty('--d', Math.min(i, 12) * 60 + 'ms'); });
+  void document.body.offsetWidth; // reinicia la animación
+  visibles.forEach(c => c.classList.add('rise3d'));
+  setTimeout(() => visibles.forEach(c => c.classList.remove('rise3d')), 1900);
+}
+
+// Lleva al visitante al catálogo, dejando libre la barra de marcas que se queda fija arriba
+function irAlCatalogo(filter) {
+  const banner = document.getElementById('marcaBanner');
+  const destino = (filter !== 'all' && banner && banner.classList.contains('visible'))
+    ? banner
+    : (document.querySelector('#catalogo .section-header') || document.getElementById('catalogo'));
+  if (!destino) return;
+  const alto = barraFiltros ? barraFiltros.offsetHeight : 0;
+  const y = destino.getBoundingClientRect().top + window.pageYOffset - alto - 16;
+  window.scrollTo({ top: Math.max(0, y), behavior: REDUCIR_MOV ? 'auto' : 'smooth' });
+}
+
+// Deja la marca elegida en el centro de la barra (así nunca queda cortada)
+function centrarMarca(btn) {
+  if (!barraInner) return;
+  const r = btn.getBoundingClientRect(), c = barraInner.getBoundingClientRect();
+  const objetivo = barraInner.scrollLeft + (r.left - c.left) - (c.width - r.width) / 2;
+  barraInner.scrollTo({ left: Math.max(0, objetivo), behavior: REDUCIR_MOV ? 'auto' : 'smooth' });
+}
 
 filterBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     filterBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const filter = btn.dataset.filter;
-    cards.forEach(card => {
-      const cat = card.dataset.category || '';
-      const show = filter === 'all' || cat === filter;
-      card.classList.toggle('hidden', !show);
-    });
-    // Hide brand-sections where all cards are hidden
-    document.querySelectorAll('.brand-section').forEach(section => {
-      const sectionCards = section.querySelectorAll('.product-card');
-      const allHidden = Array.from(sectionCards).every(c => c.classList.contains('hidden'));
-      section.style.display = allHidden ? 'none' : '';
-    });
-    // Actualizar contador
-    const visible = Array.from(cards).filter(c => !c.classList.contains('hidden')).length;
-    updateCounter(visible, totalCards);
+    const visibles = aplicarFiltroMarca(filter);
+    mostrarBannerMarca(filter, visibles.length);
+    centrarMarca(btn);
+    if (!REDUCIR_MOV) {
+      btn.classList.remove('flip3d'); void btn.offsetWidth; btn.classList.add('flip3d');
+      setTimeout(() => btn.classList.remove('flip3d'), 800);
+    }
+    animarTarjetas3D(visibles);
+    irAlCatalogo(filter);
+    if (typeof altTrack === 'function') altTrack('filtro_marca', { marca: filter });
   });
 });
 
+// Pistas de que la barra se desliza: sombras en los bordes, flechas (en computadora) y un empujoncito inicial (en celular)
+function actualizarPistasBarra() {
+  if (!barraInner || !barraFiltros) return;
+  const max = barraInner.scrollWidth - barraInner.clientWidth;
+  barraFiltros.classList.toggle('tiene-izq', barraInner.scrollLeft > 6);
+  barraFiltros.classList.toggle('tiene-der', barraInner.scrollLeft < max - 6);
+}
+if (barraInner && barraFiltros) {
+  ['izq', 'der'].forEach(lado => {
+    const f = document.createElement('button');
+    f.type = 'button';
+    f.className = 'filter-flecha ' + lado;
+    f.setAttribute('aria-label', lado === 'izq' ? 'Marcas anteriores' : 'Más marcas');
+    f.textContent = lado === 'izq' ? '‹' : '›';
+    f.addEventListener('click', () => barraInner.scrollBy({ left: (lado === 'izq' ? -1 : 1) * barraInner.clientWidth * 0.6, behavior: 'smooth' }));
+    barraFiltros.appendChild(f);
+  });
+  barraInner.addEventListener('scroll', actualizarPistasBarra, { passive: true });
+  window.addEventListener('resize', actualizarPistasBarra);
+  window.addEventListener('load', actualizarPistasBarra);
+  actualizarPistasBarra();
+  if (!REDUCIR_MOV && 'ontouchstart' in window && barraInner.scrollWidth > barraInner.clientWidth + 10) {
+    setTimeout(() => {
+      barraInner.scrollTo({ left: 70, behavior: 'smooth' });
+      setTimeout(() => barraInner.scrollTo({ left: 0, behavior: 'smooth' }), 900);
+    }, 1400);
+  }
+}
 
 // ═══ CARRUSEL DE FOTOS EN LA TARJETA (grid) ═══
 // Se centraliza en una función reutilizable porque debe poder ejecutarse:
@@ -1246,6 +1408,26 @@ function configurarTodosLosCarruseles() {
 configurarTodosLosCarruseles();
 
 // Modal
+// Enlace propio de cada perfume (https://althamirgt.com/p/lattafa-yara-moi): mismo criterio que usa el servidor
+function slugProducto(marca, nombre) {
+  return String((marca || '') + ' ' + (nombre || '')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/['’`]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+// Quien entra con ?producto=lattafa-yara-moi (por ejemplo desde la página de ese perfume) ve el perfume abierto
+let productoDeURLAbierto = false;
+function abrirProductoDesdeURL() {
+  if (productoDeURLAbierto) return;
+  const slug = new URLSearchParams(location.search).get('producto');
+  if (!slug) { productoDeURLAbierto = true; return; }
+  const card = Array.from(document.querySelectorAll('.product-card')).find(c => slugProducto(c.dataset.brand, c.dataset.name) === slug);
+  if (!card) return; // si el Sheet todavía no creó esa tarjeta, se reintenta cuando termina de cargar
+  productoDeURLAbierto = true;
+  openModal(card);
+  altTrack('producto_desde_ficha', { item_id: slug });
+}
+window.abrirProductoDesdeURL = abrirProductoDesdeURL;
+setTimeout(abrirProductoDesdeURL, 700);
+
 function openModal(card) {
   const imgs = JSON.parse(card.dataset.imgs || '[]');
   const brand = card.dataset.brand;
@@ -1277,7 +1459,8 @@ function openModal(card) {
         if (label && val && !label.toLowerCase().includes('botella')) prices.push(`${label}: ${val}`);
       });
       const priceText = prices.length ? '\n' + prices.join(' · ') : '';
-      const msg = `✨ *${name}* — ${brand}\n${desc}${priceText}\n\n🛒 Ver catálogo: althamir.gt`;
+      const urlFicha = 'https://althamirgt.com/p/' + slugProducto(brand, name);
+      const msg = `✨ *${name}* — ${brand}\n${desc}${priceText}\n\n🛒 Míralo aquí: ${urlFicha}`;
       window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     };
   }
@@ -1765,7 +1948,7 @@ function showOrderConfirm() {
   cart.forEach(item => { msg += `• ${item.name} (${item.size}) x${item.qty} — Q ${(item.price*item.qty).toFixed(0)}\n`; });
   msg += `━━━━━━━━━━━━━━━━━━\n💰 *Total: Q ${total.toFixed(0)}*\n`;
   if (note) msg += `📝 *Nota:* ${note}\n`;
-  msg += `_Enviado desde althamir.gt_`;
+  msg += `_Enviado desde althamirgt.com_`;
 
   const waUrl = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
   const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
@@ -2027,6 +2210,7 @@ async function cargarInventario() {
     aplicarImagenesSheet();
     renderBestsellers();
     updateCounterDisponibles();
+    if (typeof window.abrirProductoDesdeURL === 'function') window.abrirProductoDesdeURL();
     // Re-renderizar precios desde Sheet
     document.querySelectorAll('.product-card').forEach(card => inicializarBotonesTarjeta(card));
     quitarNoDisponiblesDelCarrito();
