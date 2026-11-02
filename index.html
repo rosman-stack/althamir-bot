@@ -249,6 +249,53 @@
 @keyframes bannerSub{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.filter-btn.flip3d,.product-card.rise3d,.marca-banner .mb-nombre,.marca-banner .mb-sub{animation:none!important}}
 </style>
+<style id="lenis-humo">
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+.lenis.lenis-smooth [data-lenis-prevent]{overscroll-behavior:contain}
+.lenis.lenis-stopped{overflow:hidden}
+.lenis.lenis-smooth iframe{pointer-events:none}
+.hero-humo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 1.8s ease}
+.hero-humo.on{opacity:1}
+body.light-mode .hero-humo.on{opacity:.35}
+</style>
+<style id="vial-estilos">
+.decant-section{padding:80px 24px;position:relative;z-index:1;background:var(--bg2)}
+.decant-wrap{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:56px;align-items:center}
+.decant-visual{position:relative;aspect-ratio:4/5;width:100%;max-width:380px;margin:0 auto;background:radial-gradient(ellipse 58% 46% at 50% 56%,rgba(201,168,76,.15),transparent 72%)}
+.decant-visual canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;-webkit-tap-highlight-color:transparent}
+.decant-visual canvas:active{cursor:grabbing}
+.decant-hint{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);pointer-events:none}
+.decant-text{font-size:15px;line-height:1.9;color:var(--text-dim);max-width:460px}
+.decant-sizes{display:flex;gap:12px;margin:24px 0 26px;max-width:460px}
+.decant-size{flex:1;padding:14px 10px;background:transparent;border:1px solid var(--gold-border);color:var(--text);font-family:inherit;cursor:pointer;text-align:center;transition:border-color .25s,background .25s}
+.decant-size b{display:block;font-family:'Playfair Display',serif;font-size:22px;font-weight:400;letter-spacing:1px}
+.decant-size span{display:block;margin-top:5px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)}
+.decant-size.active{border-color:var(--gold);background:var(--gold-dim)}
+.decant-label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.decant-tonos{display:flex;flex-wrap:wrap;gap:10px;max-width:460px}
+.decant-tono{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border:1px solid var(--gold-border);border-radius:30px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:12px;letter-spacing:1px;cursor:pointer;transition:border-color .25s,background .25s,color .25s}
+.decant-tono i{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.decant-tono.active{border-color:var(--gold);color:var(--text);background:var(--gold-dim)}
+.decant-cta{margin-top:28px;padding:14px 28px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-family:inherit;font-size:11px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:background .25s,color .25s}
+.decant-cta:hover{background:var(--gold);color:#060d08}
+.decant-sin3d .decant-visual{display:none}
+.decant-sin3d .decant-wrap{grid-template-columns:1fr;max-width:560px}
+@media(max-width:760px){
+  .decant-section{padding:64px 20px}
+  .decant-wrap{grid-template-columns:1fr;gap:26px}
+  .decant-visual{max-width:300px}
+  .decant-info{text-align:center}
+  .decant-text,.decant-sizes,.decant-tonos{margin-left:auto;margin-right:auto}
+  .decant-tonos,.decant-sizes{justify-content:center}
+}
+</style>
+<style id="nuevos-estilos">
+.bestsellers-grid.nuevos-grid{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1024px){.bestsellers-grid.nuevos-grid{grid-template-columns:repeat(2,1fr)}}
+.bs-nuevo{position:absolute;top:8px;left:8px;z-index:2;padding:3px 9px;background:var(--gold);color:#060d08;border-radius:10px;font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.bs-sinfoto{display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:28px}
+</style>
 <style id="faq-estilos">
 .faq-lista{margin-top:44px}
 .faq-item{border:1px solid var(--gold-border);border-radius:14px;margin:0 0 12px;background:var(--bg2);transition:border-color .25s}
@@ -323,13 +370,14 @@
 </nav>
 
 <!-- BACK TO TOP -->
-<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
+<button class="back-top" id="backTop" onclick="window.altSubir?window.altSubir():window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <section class="hero">
   <div class="hero-bg"></div>
+  <canvas class="hero-humo" id="humoCanvas" aria-hidden="true"></canvas>
   <div class="hero-ornament"></div>
   <img class="hero-logo" src="https://res.cloudinary.com/dwnqasp3x/image/upload/w_600,f_auto,q_auto/imagen_001_q9ncz3.png" loading="eager" fetchpriority="high" alt="Althamir"/>
   <p class="hero-eyebrow">Perfumería Árabe · Diseñador · Nicho</p>
@@ -407,6 +455,15 @@
   <div class="section-divider-line"></div>
 </div>
 
+<!-- NUEVOS INGRESOS: se llena sola con los últimos 4 productos activos del Sheet -->
+<section class="bestsellers-section nuevos-section" id="nuevosSection" style="display:none">
+  <div class="section-header">
+    <p class="section-label">Recién llegados</p>
+    <h2 class="section-title">Nuevos Ingresos</h2>
+  </div>
+  <div class="bestsellers-grid nuevos-grid" id="nuevosGrid"></div>
+</section>
+
 <!-- MÁS VENDIDOS -->
 <section class="bestsellers-section">
   <div class="section-header">
@@ -414,6 +471,36 @@
     <h2 class="section-title">Más Vendidos</h2>
   </div>
   <div class="bestsellers-grid" id="bestsellersGrid"></div>
+</section>
+
+<!-- TU DECANT: vial 3D -->
+<section class="decant-section" id="decant">
+  <div class="section-header">
+    <p class="section-label">El formato</p>
+    <h2 class="section-title">Tu Decant</h2>
+  </div>
+  <div class="decant-wrap">
+    <div class="decant-visual">
+      <canvas id="vialCanvas" role="img" aria-label="Atomizador de vidrio con una fragancia, en 3D"></canvas>
+      <p class="decant-hint">Desliza para girarlo</p>
+    </div>
+    <div class="decant-info">
+      <p class="decant-text">Prueba la fragancia que te gusta sin comprar el frasco completo. Elige el tamaño, mira cómo se ve tu decant y explora por familia olfativa.</p>
+      <div class="decant-sizes" role="group" aria-label="Tamaño del decant">
+        <button type="button" class="decant-size active" data-size="0" aria-pressed="true"><b>5 ml</b><span id="decantP5">ideal para descubrir</span></button>
+        <button type="button" class="decant-size" data-size="1" aria-pressed="false"><b>10 ml</b><span id="decantP10">para llevar siempre</span></button>
+      </div>
+      <p class="decant-label">Explora por familia</p>
+      <div class="decant-tonos" role="group" aria-label="Familia olfativa">
+        <button type="button" class="decant-tono active" data-key="oriental" data-q="oriental" data-cta="orientales" data-c="0.72,0.38,0.07" style="--c:#b86112"><i></i>Oriental</button>
+        <button type="button" class="decant-tono" data-key="amaderado" data-q="amaderado" data-cta="amaderadas" data-c="0.38,0.18,0.06" style="--c:#61300f"><i></i>Amaderado</button>
+        <button type="button" class="decant-tono" data-key="floral" data-q="floral" data-cta="florales" data-c="0.80,0.40,0.50" style="--c:#cc6680"><i></i>Floral</button>
+        <button type="button" class="decant-tono" data-key="fresco" data-q="fresco" data-cta="frescas" data-c="0.18,0.52,0.62" style="--c:#2e85a0"><i></i>Fresco</button>
+        <button type="button" class="decant-tono" data-key="vainilla" data-q="vainilla" data-cta="con vainilla" data-c="0.78,0.55,0.22" style="--c:#c78c38"><i></i>Vainilla</button>
+      </div>
+      <button type="button" class="decant-cta" id="decantCta">Ver fragancias orientales</button>
+    </div>
+  </div>
 </section>
 
 <div class="filter-section">
@@ -429,6 +516,7 @@
     <button class="filter-btn " data-filter="Emper">Emper</button>
     <button class="filter-btn " data-filter="Rayhaan">Rayhaan</button>
     <button class="filter-btn " data-filter="Rasasi">Rasasi</button>
+    <button class="filter-btn " data-filter="Nautica">Nautica</button>
     <span id="productCounter" style="margin-left:auto;padding:0 20px;font-size:9px;letter-spacing:2px;color:var(--text-muted);white-space:nowrap;text-transform:uppercase"></span>
   </div>
 </div>
@@ -1198,13 +1286,28 @@ const REDUCIR_MOV = !!(window.matchMedia && window.matchMedia('(prefers-reduced-
 const barraFiltros = document.querySelector('.filter-section');
 const barraInner = document.querySelector('.filter-inner');
 
+// Clave de marca comparable: sin mayúsculas/tildes/espacios de más y sin sub-línea ("Armaf · Odyssey" → "armaf")
+function claveMarca(m) {
+  return normalizarNombre(String(m || '').split('·')[0]).replace(/[-_.]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function mismaMarca(a, b) {
+  const x = claveMarca(a), y = claveMarca(b);
+  return !!x && !!y && (x === y || x.startsWith(y + ' ') || y.startsWith(x + ' '));
+}
+// Si la marca del Sheet corresponde a un botón del filtro, se usa el nombre exacto del botón
+function categoriaCanonica(marca) {
+  const btn = Array.from(document.querySelectorAll('.filter-btn'))
+    .find(b => b.dataset.filter !== 'all' && mismaMarca(b.dataset.filter, marca));
+  return btn ? btn.dataset.filter : marca;
+}
+
 // Muestra solo la marca elegida. Se vuelven a leer las tarjetas en cada clic, así también
 // cuentan las que el Sheet crea después de cargar la página (antes se quedaban sin filtrar).
 function aplicarFiltroMarca(filter) {
   const todas = document.querySelectorAll('.product-card');
   todas.forEach(card => {
     const cat = card.dataset.category || '';
-    card.classList.toggle('hidden', !(filter === 'all' || cat === filter));
+    card.classList.toggle('hidden', !(filter === 'all' || mismaMarca(cat, filter)));
   });
   document.querySelectorAll('.brand-section').forEach(section => {
     const sectionCards = section.querySelectorAll('.product-card');
@@ -1255,7 +1358,9 @@ function irAlCatalogo(filter) {
   if (!destino) return;
   const alto = barraFiltros ? barraFiltros.offsetHeight : 0;
   const y = destino.getBoundingClientRect().top + window.pageYOffset - alto - 16;
-  window.scrollTo({ top: Math.max(0, y), behavior: REDUCIR_MOV ? 'auto' : 'smooth' });
+  if (!(window.altScrollTo && window.altScrollTo(Math.max(0, y), { immediate: REDUCIR_MOV }))) {
+    window.scrollTo({ top: Math.max(0, y), behavior: REDUCIR_MOV ? 'auto' : 'smooth' });
+  }
 }
 
 // Deja la marca elegida en el centro de la barra (así nunca queda cortada)
@@ -1268,6 +1373,8 @@ function centrarMarca(btn) {
 
 filterBtns.forEach(btn => {
   btn.addEventListener('click', () => {
+    const siBusq = document.getElementById('searchInput');
+    if (siBusq && siBusq.value) { siBusq.value = ''; siBusq.dispatchEvent(new Event('input')); }
     filterBtns.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const filter = btn.dataset.filter;
@@ -1770,7 +1877,8 @@ if (searchInput) {
 
     // Scroll al catálogo al empezar a escribir
     if (q.length === 1) {
-      document.getElementById('catalogo')?.scrollIntoView({behavior:'smooth'});
+      const cat = document.getElementById('catalogo');
+      if (cat && !(window.altScrollTo && window.altScrollTo(cat))) cat.scrollIntoView({behavior:'smooth'});
     }
   });
 
@@ -1854,6 +1962,55 @@ function renderBestsellers() {
   }
 }
 renderBestsellers();
+
+// ═══ NUEVOS INGRESOS ═══
+// Toma los últimos NUEVOS_MAX productos ACTIVOS (Disponible = Si) según el orden de las filas del Sheet.
+// Para que un perfume aparezca aquí basta agregarlo al final del Sheet; los más viejos salen solos.
+const NUEVOS_MAX = 4;
+function renderNuevosIngresos(productos) {
+  const sec = document.getElementById('nuevosSection');
+  const grid = document.getElementById('nuevosGrid');
+  if (!sec || !grid) return;
+  grid.innerHTML = '';
+  const cards = Array.from(document.querySelectorAll('.product-card'));
+  const buscarTarjeta = (k) => {
+    const exacta = cards.find(c => normalizarNombre(c.dataset.name || '') === k);
+    if (exacta) return exacta;
+    const parciales = cards.filter(c => { const n = normalizarNombre(c.dataset.name || ''); return n && (n.includes(k) || k.includes(n)); });
+    return parciales.length === 1 ? parciales[0] : null; // parcial solo si es inequívoca
+  };
+  const vistos = new Set();
+  const nuevos = [];
+  for (let i = productos.length - 1; i >= 0 && nuevos.length < NUEVOS_MAX; i--) {
+    const p = productos[i];
+    if (!p.disponible) continue;
+    const k = normalizarNombre(p.nombre);
+    if (!k || vistos.has(k)) continue;
+    const card = buscarTarjeta(k);
+    if (!card) continue;
+    vistos.add(k);
+    nuevos.push({ p, card });
+  }
+  for (const { p, card } of nuevos) {
+    let imgs = [];
+    try { imgs = JSON.parse(card.dataset.imgs || '[]'); } catch (e) {}
+    const foto = cldThumb(imgs[0] || '', 500);
+    const div = document.createElement('div');
+    div.className = 'bs-card';
+    div.innerHTML = `
+      <div class="bs-img${foto ? '' : ' bs-sinfoto'}">${foto ? `<img src="${foto}" alt="${(card.dataset.name || p.nombre).replace(/"/g, '')}" loading="lazy"/>` : '◈'}</div>
+      <div class="bs-body">
+        <p class="bs-brand"></p>
+        <p class="bs-name"></p>
+      </div>
+      <span class="bs-nuevo">Nuevo</span>`;
+    div.querySelector('.bs-brand').textContent = card.dataset.category || p.marca || '';
+    div.querySelector('.bs-name').textContent = card.dataset.name || p.nombre;
+    div.addEventListener('click', () => openModal(card));
+    grid.appendChild(div);
+  }
+  sec.style.display = nuevos.length ? '' : 'none';
+}
 
 // ═══ CONFIRMACIÓN DE ORDEN ═══
 const confirmOverlay = document.getElementById('confirmOverlay');
@@ -2085,7 +2242,7 @@ function crearTarjetaDesdeSheet(p, nuevoId) {
   wrapper.dataset.brand = p.marca;
   wrapper.dataset.name = p.nombre;
   wrapper.dataset.desc = p.descripcion || '';
-  wrapper.dataset.category = p.marca;
+  wrapper.dataset.category = categoriaCanonica(p.marca);
 
   const mensajeWA = encodeURIComponent(`Hola Althamir 👋, me interesa conocer el precio de botella completa de *${p.nombre}*. ¿Podrías ayudarme?`);
   const imgSrc = cldThumb(imagenes[0] || '', 700);
@@ -2143,8 +2300,15 @@ function crearProductosNuevosDesdeSheet(productos) {
     if (nombresExistentes.has(normalizarNombre(p.nombre))) return; // ya existe, no duplicar
 
     const nuevaCard = crearTarjetaDesdeSheet(p, siguienteId++);
-    const grid = obtenerOCrearBrandGrid(p.marca || 'Otras');
-    grid.appendChild(nuevaCard);
+    // Si la marca ya tiene tarjetas en la página, la nueva va justo después de la última de esa marca;
+    // si es una marca nueva, se crea su sección (con el nombre tal como lo escribe el botón del filtro).
+    const catNueva = nuevaCard.dataset.category || 'Otras';
+    const hermanas = Array.from(document.querySelectorAll('.product-card')).filter(c => mismaMarca(c.dataset.category || '', catNueva));
+    if (hermanas.length) {
+      hermanas[hermanas.length - 1].after(nuevaCard);
+    } else {
+      obtenerOCrearBrandGrid(catNueva).appendChild(nuevaCard);
+    }
     configurarCarruselTarjeta(nuevaCard); // construye flechas/puntos si trae varias fotos
     console.log(`[Sheets] Producto nuevo agregado al sitio: ${p.nombre}`);
   });
@@ -2207,8 +2371,11 @@ async function cargarInventario() {
     console.log('[Sheets] Inventario cargado:', productos.length, 'productos');
     crearProductosNuevosDesdeSheet(productos);
     aplicarDisponibilidad();
+    diagnosticarInventario(productos);
     aplicarImagenesSheet();
     renderBestsellers();
+    renderNuevosIngresos(productos);
+    if (window.altVialPrecios) window.altVialPrecios(productos);
     updateCounterDisponibles();
     if (typeof window.abrirProductoDesdeURL === 'function') window.abrirProductoDesdeURL();
     // Re-renderizar precios desde Sheet
@@ -2218,6 +2385,20 @@ async function cargarInventario() {
     console.warn('[Sheets] Error cargando inventario:', e.message);
     aplicarDisponibilidadOffline();
   }
+}
+
+// Ayuda para detectar nombres que no calzan entre el Sheet y las tarjetas (abre F12 → Consola).
+// Una tarjeta sin fila en el Sheet se muestra "Disponible" por defecto, aunque el Sheet diga No.
+function diagnosticarInventario(productos) {
+  const cards = Array.from(document.querySelectorAll('.product-card'));
+  const sinFila = cards.filter(c => !buscarEnInventario(c.dataset.name || '')).map(c => c.dataset.name);
+  const nombresTarjetas = cards.map(c => normalizarNombre(c.dataset.name || ''));
+  const sinTarjeta = productos.filter(p => {
+    const k = normalizarNombre(p.nombre);
+    return !nombresTarjetas.some(n => n === k || n.includes(k) || k.includes(n));
+  }).map(p => p.nombre + ' (' + (p.marca || 'sin marca') + (p.disponible ? '' : ', No') + ')');
+  if (sinFila.length) console.warn('[Sheets] Tarjetas SIN fila en el Sheet (salen "Disponible" por defecto):', sinFila);
+  if (sinTarjeta.length) console.warn('[Sheets] Filas del Sheet SIN tarjeta en la página:', sinTarjeta);
 }
 
 function generarTextoCatalogo(productos) {
@@ -2687,6 +2868,510 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW no se pudo registrar:', err));
   });
 }
+</script>
+<script>
+// ═══ SCROLL SUAVE (Lenis) + HUMO DE BAKHOOR ═══
+// Teléfono/tablet: se deja el scroll nativo (el más fluido en móvil) y solo corre el humo, en baja resolución.
+// Escritorio con mouse: se carga Lenis (~5 KB) cuando la página ya terminó de cargar.
+(function () {
+  'use strict';
+  var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+  var reducir = mq('(prefers-reduced-motion: reduce)');
+  var conMouse = mq('(hover: hover) and (pointer: fine)');
+  var red = navigator.connection || {};
+  var ahorroDatos = !!red.saveData || /(^|-)2g$/.test(red.effectiveType || '');
+  var lenis = null;
+
+  // Ayudantes que usa el resto de la página: si Lenis no está activo devuelven false y se usa el scroll nativo
+  window.altScrollTo = function (destino, opciones) {
+    if (!lenis) return false;
+    lenis.scrollTo(destino, opciones || {});
+    return true;
+  };
+  window.altSubir = function () {
+    if (!window.altScrollTo(0, { immediate: reducir })) window.scrollTo({ top: 0, behavior: reducir ? 'auto' : 'smooth' });
+  };
+
+  // ── LENIS ──
+  function iniciarLenis() {
+    if (typeof window.Lenis !== 'function') return;
+    var SCROLLS_PROPIOS = '.modal, .cart-items, .noor-messages, .confirm-box, #pedidosResultados';
+    lenis = new window.Lenis({
+      autoRaf: true, lerp: 0.1, smoothWheel: true,
+      prevent: function (nodo) { return !!(nodo && nodo.closest && nodo.closest(SCROLLS_PROPIOS)); }
+    });
+    document.querySelectorAll(SCROLLS_PROPIOS).forEach(function (el) { el.setAttribute('data-lenis-prevent', ''); });
+
+    // Cuando se abre el carrito o un modal la página pone body{overflow:hidden}: pausamos Lenis mientras tanto
+    var bloqueado = false;
+    new MutationObserver(function () {
+      var b = document.body.style.overflow === 'hidden';
+      if (b === bloqueado) return;
+      bloqueado = b;
+      if (b) lenis.stop(); else lenis.start();
+    }).observe(document.body, { attributes: true, attributeFilter: ['style'] });
+
+    // Enlaces internos (#catalogo, #nosotros…) con el mismo scroll suave
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var h = a.getAttribute('href');
+      if (h === '#') { e.preventDefault(); lenis.scrollTo(0); return; }
+      var el = null;
+      try { el = document.querySelector(h); } catch (err) { return; }
+      if (!el) return;
+      e.preventDefault();
+      lenis.scrollTo(el);
+    });
+  }
+  function cargarLenis() {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lenis@1.3.1/dist/lenis.min.js';
+    s.async = true;
+    s.onload = function () { try { iniciarLenis(); } catch (err) { lenis = null; console.warn('Lenis no se pudo iniciar:', err); } };
+    document.head.appendChild(s);
+  }
+
+  // ── HUMO DE BAKHOOR (WebGL, resolución baja, 30 fps, se apaga solo si el equipo no da la talla) ──
+  function iniciarHumo() {
+    var canvas = document.getElementById('humoCanvas');
+    var hero = canvas && canvas.parentElement;
+    if (!canvas || !hero) return;
+    var gl = canvas.getContext('webgl', {
+      alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false,
+      powerPreference: 'low-power', failIfMajorPerformanceCaveat: true
+    });
+    if (!gl) return;
+
+    var oct = conMouse ? 4 : 3;      // menos octavas de ruido en teléfonos
+    var escala = conMouse ? 0.5 : 0.35;
+    var FS = [
+      '#ifdef GL_FRAGMENT_PRECISION_HIGH', 'precision highp float;', '#else', 'precision mediump float;', '#endif',
+      '#define OCT ' + oct,
+      'uniform vec2 uRes; uniform float uT; uniform vec2 uM; uniform float uS;',
+      'float h(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}',
+      'float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
+      '  return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}',
+      'float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<OCT;i++){s+=a*n(p);p=p*2.02+vec2(1.7,9.2);a*=.5;}return s;}',
+      'void main(){',
+      '  vec2 uv=gl_FragCoord.xy/uRes; float asp=uRes.x/uRes.y;',
+      '  vec2 p=vec2((uv.x-.5)*asp,uv.y); float t=uT*.05; float F=3.;',
+      '  vec2 q=vec2(fbm(p*F+vec2(0.,-t*1.2)),fbm(p*F+vec2(5.2,1.3-t)));',
+      '  float d=fbm(p*F*1.1+1.8*q+vec2(uM.x*.12,-t*1.6-uS*.22));',
+      '  float x=(uv.x-.5)*2.;',
+      '  float col=1.-smoothstep(0.,mix(.55,1.15,uv.y),abs(x+(q.x-.5)*.7));',
+      '  float vert=smoothstep(0.,.15,uv.y)*(1.-smoothstep(.72,1.,uv.y));',
+      '  float a=smoothstep(.36,.74,d)*col*vert*.34;',
+      '  vec3 c=mix(vec3(.62,.48,.20),vec3(.97,.85,.55),smoothstep(.40,.90,d));',
+      '  gl_FragColor=vec4(c*a,a);',
+      '}'
+    ].join('\n');
+    var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+
+    function compilar(tipo, src) {
+      var sh = gl.createShader(tipo);
+      gl.shaderSource(sh, src); gl.compileShader(sh);
+      return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
+    }
+    var vs = compilar(gl.VERTEX_SHADER, VS), fs = compilar(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) return;
+    var prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+    gl.bindAttribLocation(prog, 0, 'a');
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+    gl.useProgram(prog);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    var uRes = gl.getUniformLocation(prog, 'uRes'), uT = gl.getUniformLocation(prog, 'uT'),
+        uM = gl.getUniformLocation(prog, 'uM'), uS = gl.getUniformLocation(prog, 'uS');
+
+    var anchoPrev = 0;
+    function medir() {
+      var w = hero.clientWidth, hgt = hero.clientHeight;
+      if (!w || !hgt) return;
+      if (w === anchoPrev && canvas.width > 1) return;   // en celular la barra del navegador cambia el alto: ignorarlo
+      anchoPrev = w;
+      var cw = Math.max(64, Math.min(640, Math.round(w * escala)));
+      var ch = Math.max(64, Math.min(640, Math.round(hgt * escala)));
+      canvas.width = cw; canvas.height = ch;
+      gl.viewport(0, 0, cw, ch);
+    }
+    var mx = 0, mxObj = 0, seg = 0;
+    function dibujar() {
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform1f(uT, seg);
+      gl.uniform2f(uM, mx, 0);
+      gl.uniform1f(uS, Math.min(1.5, (window.pageYOffset || 0) / Math.max(1, hero.clientHeight)));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    medir();
+    seg = 18;
+    dibujar();
+    canvas.classList.add('on');
+    if (reducir) {                     // sin animación: una sola imagen fija
+      window.addEventListener('resize', function () { anchoPrev = 0; medir(); dibujar(); });
+      return;
+    }
+
+    var corriendo = false, visible = true, raf = 0, ultimo = 0, n = 0, acum = 0, vivo = true;
+    function apagar() {
+      vivo = false; corriendo = false; cancelAnimationFrame(raf);
+      canvas.classList.remove('on');
+      var ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext();
+    }
+    function frame(ahora) {
+      if (!corriendo) return;
+      raf = requestAnimationFrame(frame);
+      var dt = ahora - ultimo;
+      if (dt < 30) return;             // ~30 fps
+      ultimo = ahora;
+      if (dt < 1000) {                 // medimos solo fotogramas "normales" (no el regreso desde otra pestaña)
+        seg += dt / 1000;
+        n++; acum += dt;
+        if (n === 90) {                // si el promedio baja de ~18 fps, el equipo no puede: se apaga el humo
+          if (acum / n > 55) { apagar(); return; }
+          n = 0; acum = 0;
+        }
+      }
+      mx += (mxObj - mx) * 0.05;
+      dibujar();
+    }
+    function ajustar() {
+      var debe = vivo && visible && !document.hidden;
+      if (debe && !corriendo) { corriendo = true; ultimo = performance.now(); raf = requestAnimationFrame(frame); }
+      else if (!debe && corriendo) { corriendo = false; cancelAnimationFrame(raf); }
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; ajustar(); }, { threshold: 0.02 }).observe(hero);
+    }
+    document.addEventListener('visibilitychange', ajustar);
+    if (conMouse) hero.addEventListener('pointermove', function (e) { mxObj = (e.clientX / window.innerWidth - .5) * 2; }, { passive: true });
+    window.addEventListener('resize', function () { medir(); }, { passive: true });
+    canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); apagar(); });
+    ajustar();
+  }
+
+  // ── Arranque: después de que la página cargó y el navegador está libre (no compite con la carga inicial) ──
+  function arrancar() {
+    var libre = window.requestIdleCallback || function (f) { return setTimeout(f, 700); };
+    libre(function () {
+      if (!ahorroDatos) { try { iniciarHumo(); } catch (err) { console.warn('Humo no disponible:', err); } }
+      if (conMouse && !reducir && !ahorroDatos) cargarLenis();
+    }, { timeout: 2500 });
+  }
+  if (document.readyState === 'complete') arrancar(); else window.addEventListener('load', arrancar);
+})();
+</script>
+<script>
+// ═══ TU DECANT: vial 3D (WebGL propio, sin librerías) ═══
+// Se crea solo cuando la sección está por verse, corre a ~30 fps solo mientras se ve, baja la calidad
+// o pasa a "solo al tocar" si el equipo no da la talla, y deja una versión sin 3D si no hay WebGL.
+(function () {
+  'use strict';
+  var sec = document.getElementById('decant');
+  var canvas = document.getElementById('vialCanvas');
+  if (!sec || !canvas) return;
+  var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+  var reducir = mq('(prefers-reduced-motion: reduce)');
+  var conMouse = mq('(hover: hover) and (pointer: fine)');
+  var AUTO = reducir ? 0 : 0.30;                       // giro suave automático (rad/s)
+
+  function rgb(txt) { return txt.split(',').map(Number); }
+  var chips = sec.querySelectorAll('.decant-tono');
+  var botonesTam = sec.querySelectorAll('.decant-size');
+  var cta = document.getElementById('decantCta');
+  var familia = { q: 'oriental' };
+
+  var E = { size: 0, fill: reducir ? 1 : 0, rot: 0.6, vel: AUTO, elev: 0.2, col: rgb('0.72,0.38,0.07') };   // lo que se ve
+  var OBJ = { size: 0, fill: 0, col: rgb('0.72,0.38,0.07') };                                               // a donde va
+  var elevObj = 0.2, arrastrando = false;
+  var continuo = !reducir, kickHasta = 0, ajustar = function () {};
+
+  function kick(ms) { kickHasta = performance.now() + ms; ajustar(); }
+
+  // ── Controles (funcionan aunque el 3D no esté disponible) ──
+  botonesTam.forEach(function (b) {
+    b.addEventListener('click', function () {
+      botonesTam.forEach(function (x) { var on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      OBJ.size = Number(b.getAttribute('data-size'));
+      if (!reducir && E.fill > 0.3) E.fill = 0.3;      // se vuelve a "llenar" al cambiar de tamaño
+      kick(2400);
+    });
+  });
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      chips.forEach(function (x) { x.classList.toggle('active', x === c); });
+      OBJ.col = rgb(c.getAttribute('data-c'));
+      familia.q = c.getAttribute('data-q');
+      if (cta) cta.textContent = 'Ver fragancias ' + c.getAttribute('data-cta');
+      kick(1600);
+    });
+  });
+  if (cta) cta.addEventListener('click', function () {
+    var todo = document.querySelector('.filter-btn[data-filter="all"]');
+    if (todo) todo.click();                              // limpia marca/búsqueda y lleva al catálogo
+    var si = document.getElementById('searchInput');
+    if (si) { si.value = familia.q; si.dispatchEvent(new Event('input')); }
+  });
+
+  // Precios "desde" tomados del Sheet (solo productos disponibles)
+  window.altVialPrecios = function (productos) {
+    var m5 = Infinity, m10 = Infinity;
+    (productos || []).forEach(function (p) {
+      if (!p.disponible) return;
+      var a = parseFloat(String(p.ml5).replace(/[^0-9.]/g, '')), b = parseFloat(String(p.ml10).replace(/[^0-9.]/g, ''));
+      if (a > 0 && a < m5) m5 = a;
+      if (b > 0 && b < m10) m10 = b;
+    });
+    var e5 = document.getElementById('decantP5'), e10 = document.getElementById('decantP10');
+    if (e5 && isFinite(m5)) e5.textContent = 'desde Q' + m5;
+    if (e10 && isFinite(m10)) e10.textContent = 'desde Q' + m10;
+  };
+
+  // La cámara baja un poco mientras se hace scroll por la sección
+  function alScroll() {
+    var r = sec.getBoundingClientRect(), vh = window.innerHeight || 800;
+    var pr = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));
+    elevObj = 0.30 - 0.26 * pr;
+  }
+  window.addEventListener('scroll', alScroll, { passive: true });
+  alScroll();
+
+  // Empieza a llenarse cuando de verdad se ve
+  if ('IntersectionObserver' in window) {
+    var llenar = new IntersectionObserver(function (en) {
+      if (!en[0].isIntersecting) return;
+      OBJ.fill = 1; kick(3200); llenar.disconnect();
+    }, { threshold: 0.35 });
+    llenar.observe(canvas);
+  } else { OBJ.fill = 1; E.fill = 1; }
+  if (reducir) OBJ.fill = 1;
+
+  // ── WebGL ──
+  var iniciado = false;
+  function sin3d() { sec.classList.add('decant-sin3d'); }
+  function iniciarGL() {
+    if (iniciado) return; iniciado = true;
+    var gl = null;
+    try {
+      gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false,
+        powerPreference: 'low-power', failIfMajorPerformanceCaveat: true });
+    } catch (e) {}
+    if (!gl) return sin3d();
+
+    var FS = [
+      '#ifdef GL_FRAGMENT_PRECISION_HIGH', 'precision highp float;', '#else', 'precision mediump float;', '#endif',
+      '#define STEPS ' + (conMouse ? 48 : 40),
+      'uniform vec2 uRes; uniform float uSize, uFill, uRot, uElev; uniform vec3 uLiq;',
+      'float hb, rb;',
+      'float ss(float a,float b,float x){float t=clamp((x-a)/(b-a),0.,1.);return t*t*(3.-2.*t);}',
+      'vec3 rotY(vec3 v,float a){float c=cos(a),s=sin(a);return vec3(c*v.x+s*v.z,v.y,-s*v.x+c*v.z);}',
+      'float sdRC(vec3 p,float R,float H,float rr){',
+      '  float q0=length(p.xz)-(R-rr),q1=abs(p.y)-(H-rr);',
+      '  return min(max(q0,q1),0.)+length(max(vec2(q0,q1),0.))-rr;}',
+      'float dBody(vec3 p){return sdRC(p,rb,hb,.10);}',
+      'float dNoz(vec3 p){return sdRC(p-vec3(0.,hb+.27,0.),.05,.075,.03);}',
+      'float map(vec3 p){',
+      '  float d=dBody(p);',
+      '  d=min(d,sdRC(p-vec3(0.,hb+.02,0.),.20,.075,.012));',
+      '  d=min(d,sdRC(p-vec3(0.,hb+.145,0.),.135,.05,.010));',
+      '  return min(d,dNoz(p));}',
+      'vec3 calcN(vec3 p){const float e=.0015;vec2 k=vec2(1.,-1.);',
+      '  return normalize(k.xyy*map(p+k.xyy*e)+k.yyx*map(p+k.yyx*e)+k.yxy*map(p+k.yxy*e)+k.xxx*map(p+k.xxx*e));}',
+      'float strip(float az,float a0,float w,float y,float h0,float h1){',
+      '  float da=mod(az-a0+3.14159265,6.2831853)-3.14159265;',
+      '  return ss(w,0.,abs(da))*ss(h0-.2,h0,y)*ss(h1+.2,h1,y);}',
+      'vec3 env(vec3 d){',
+      '  float y=d.y,az=atan(d.z,d.x);',
+      '  vec3 c=mix(vec3(.015,.035,.025),vec3(.10,.15,.12),clamp(y*.5+.5,0.,1.));',
+      '  vec3 warm=vec3(1.,.88,.62);',
+      '  c+=warm*(2.6*strip(az,.9,.22,y,-.6,.8)+1.6*strip(az,-2.2,.14,y,-.5,.7)+.8*strip(az,2.6,.08,y,-.7,.9));',
+      '  c+=warm*(1.1*ss(.72,.97,y));',
+      '  c+=vec3(.8,.6,.25)*(.22*ss(-.2,-.9,y));',
+      '  return c;}',
+      'void main(){',
+      '  hb=.50+.28*uSize; rb=.30+.05*uSize;',
+      '  vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.; uv.x*=uRes.x/uRes.y;',
+      '  vec3 T=vec3(0.,.19,0.); vec3 ro=T+3.9*vec3(0.,sin(uElev),cos(uElev));',
+      '  vec3 fwd=normalize(T-ro); vec3 right=vec3(1.,0.,0.); vec3 up=cross(right,fwd);',
+      '  vec3 rd=normalize(uv.x*.32*right+uv.y*.32*up+fwd);',
+      '  float t=0.,dmin=1e9; bool hit=false;',
+      '  for(int i=0;i<STEPS;i++){',
+      '    float d=map(ro+rd*t);',
+      '    dmin=min(dmin,d/max(t,.5));',
+      '    if(d<.0008){hit=true;break;}',
+      '    t+=d*.9; if(t>9.)break;}',
+      '  if(!hit){',
+      '    float cov=1.-ss(0.,(.64/uRes.y)*1.2,dmin);',
+      '    gl_FragColor=vec4(vec3(.55,.45,.22)*cov*.30,cov*.30);return;}',
+      '  vec3 P=ro+rd*t; vec3 n=calcN(P);',
+      '  float ndv=clamp(-dot(n,rd),0.,1.);',
+      '  vec3 rf=reflect(rd,n);',
+      '  vec3 refl=env(rotY(normalize(rf),uRot));',
+      '  float db=dBody(P),dm=map(P),dn=dNoz(P);',
+      '  vec3 ld=normalize(vec3(.4,.6,.7)); float dif=clamp(dot(n,ld),0.,1.);',
+      '  vec3 col; float al;',
+      '  if(abs(dm-db)<1e-5){',
+      '    float F=.06+.94*pow(1.-ndv,4.);',
+      '    float eta=1./1.5; float k=1.-eta*eta*(1.-ndv*ndv);',
+      '    vec3 rdi=normalize(eta*rd+(eta*ndv-sqrt(max(k,0.)))*n);',
+      '    float ri=rb-.045,rl=ri-.004,yb=-hb+.12,ytop=hb-.11,yl=yb+(ytop-yb)*uFill;',
+      '    float a=rdi.x*rdi.x+rdi.z*rdi.z+1e-9; float b=2.*(P.x*rdi.x+P.z*rdi.z); float c=P.x*P.x+P.z*P.z-rl*rl;',
+      '    float disc=b*b-4.*a*c; float sq=sqrt(max(disc,0.));',
+      '    float t0=(-b-sq)/(2.*a),t1=(-b+sq)/(2.*a);',
+      '    float ry=abs(rdi.y)<1e-6?1e-6:rdi.y;',
+      '    float ta=(yb-P.y)/ry,tb=(yl-P.y)/ry;',
+      '    float tmin=max(max(t0,min(ta,tb)),0.),tmax=min(t1,max(ta,tb));',
+      '    float L=disc>0.?max(tmax-tmin,0.):0.;',
+      '    float yin=P.y+rdi.y*tmin;',
+      '    float aT=1.-exp(-L*6.);',
+      '    vec3 sh=uLiq*(.34+.46*ss(0.,.7,L));',
+      '    sh+=uLiq*(.55*ss(.07,0.,yl-yin)*(L>0.?1.:0.));',
+      '    sh+=uLiq*min(env(rotY(rdi,uRot)),vec3(1.4))*.30;',
+      '    sh+=uLiq*(.25*ss(.35,0.,L));',
+      '    vec3 tint=vec3(.55,.75,.65)*.10;',
+      '    vec3 tr=aT*sh+(1.-aT)*tint; float trA=aT+(1.-aT)*.04;',
+      '    col=F*refl+(1.-F)*tr; al=F+(1.-F)*trA;',
+      '    float phi=atan(P.z,P.x)+uRot; float yb0=-.12,yb1=.16;',
+      '    float v=(P.y-yb0)/(yb1-yb0); float u=phi/6.2831853*8.;',
+      '    float inb=(v>0.&&v<1.)?1.:0.;',
+      '    float d1=abs(fract(u)-.5)+abs(fract(v)-.5);',
+      '    float l=ss(.06,0.,abs(d1-.40))+ss(.05,0.,abs(d1-.20));',
+      '    l=clamp(l+ss(.11,.06,d1),0.,1.);',
+      '    float edge=ss(.04,0.,abs(v))+ss(.04,0.,abs(v-1.));',
+      '    float m=clamp(l+edge,0.,1.)*inb;',
+      '    vec3 gold=vec3(.86,.68,.28)*(.55+.6*dif)+refl*vec3(.8,.65,.3)*.5;',
+      '    col=col*(1.-m*.9)+gold*m*.9; al=clamp(al*(1.-m*.9)+m*.9,0.,1.);',
+      '  } else if(abs(dm-dn)<1e-5){',
+      '    col=vec3(.05,.05,.055)*(.5+dif)+refl*.55+vec3(pow(clamp(dot(rf,ld),0.,1.),40.)*1.2); al=1.;',
+      '  } else {',
+      '    vec3 gc=vec3(.85,.66,.26);',
+      '    col=gc*(.20+.55*dif)+refl*gc*.62;',
+      '    col*=1.-.35*ss(.004,0.,abs(P.y-(hb+.02+.035))); al=1.;',
+      '  }',
+      '  gl_FragColor=vec4(min(col,1.),al);',
+      '}'
+    ].join('\n');
+    var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+
+    function compilar(tipo, src) {
+      var sh = gl.createShader(tipo);
+      gl.shaderSource(sh, src); gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.warn('Vial: error de shader', gl.getShaderInfoLog(sh)); return null; }
+      return sh;
+    }
+    var vs = compilar(gl.VERTEX_SHADER, VS), fs = compilar(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) return sin3d();
+    var prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+    gl.bindAttribLocation(prog, 0, 'a');
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return sin3d();
+    gl.useProgram(prog);
+    var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    var U = {}; ['uRes', 'uSize', 'uFill', 'uRot', 'uElev', 'uLiq'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+
+    var calidad = 1, anchoPrev = 0;
+    function medir() {
+      var w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      var k = calidad * (conMouse ? 1 : 0.9);
+      var cw = Math.max(120, Math.min(480, Math.round(w * k))), ch = Math.round(cw * h / w);
+      if (cw !== canvas.width || ch !== canvas.height) { canvas.width = cw; canvas.height = ch; gl.viewport(0, 0, cw, ch); }
+      anchoPrev = w;
+    }
+    function dibujar() {
+      gl.uniform2f(U.uRes, canvas.width, canvas.height);
+      gl.uniform1f(U.uSize, E.size);
+      gl.uniform1f(U.uFill, E.fill);
+      gl.uniform1f(U.uRot, E.rot);
+      gl.uniform1f(U.uElev, E.elev);
+      gl.uniform3f(U.uLiq, E.col[0], E.col[1], E.col[2]);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function paso(s) {
+      if (!reducir) {
+        E.size += (OBJ.size - E.size) * (1 - Math.exp(-s * 7));
+        E.fill += (OBJ.fill - E.fill) * (1 - Math.exp(-s * 1.7));
+        var k = 1 - Math.exp(-s * 6);
+        for (var i = 0; i < 3; i++) E.col[i] += (OBJ.col[i] - E.col[i]) * k;
+        E.elev += (elevObj - E.elev) * (1 - Math.exp(-s * 4));
+      } else { E.size = OBJ.size; E.fill = OBJ.fill; E.col = OBJ.col.slice(); E.elev = elevObj; }
+      if (!arrastrando) { E.rot += E.vel * s; E.vel += (AUTO - E.vel) * (1 - Math.exp(-s * 1.6)); }
+    }
+
+    var corriendo = false, visible = false, raf = 0, ultimo = 0, n = 0, acum = 0, vivo = true;
+    function frame(ahora) {
+      if (!corriendo) return;
+      raf = requestAnimationFrame(frame);
+      var dt = ahora - ultimo;
+      if (dt < 30) return;                          // ~30 fps
+      ultimo = ahora;
+      if (dt < 1000 && continuo) {
+        n++; acum += dt;
+        if (n === 90) {                              // ¿el equipo aguanta? si no: menos resolución, y luego solo "al tocar"
+          var prom = acum / n; n = 0; acum = 0;
+          if (prom > 52) { if (calidad > 0.6) { calidad *= 0.7; medir(); } else { continuo = false; } }
+        }
+      }
+      paso(Math.min(dt, 100) / 1000);
+      dibujar();
+      if (!continuo && !arrastrando && ahora > kickHasta) { corriendo = false; cancelAnimationFrame(raf); }
+    }
+    ajustar = function () {
+      var debe = vivo && visible && !document.hidden && (continuo || arrastrando || performance.now() < kickHasta);
+      if (debe && !corriendo) { corriendo = true; ultimo = performance.now(); raf = requestAnimationFrame(frame); }
+      else if (!debe && corriendo) { corriendo = false; cancelAnimationFrame(raf); }
+    };
+
+    medir(); paso(0); dibujar();                    // primer cuadro
+    if ('ResizeObserver' in window) new ResizeObserver(function () { if (canvas.clientWidth !== anchoPrev) { medir(); dibujar(); } }).observe(canvas);
+    document.addEventListener('visibilitychange', ajustar);
+    canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); vivo = false; ajustar(); sin3d(); });
+
+    // Arrastrar para girar (en celular solo el gesto horizontal; el vertical sigue siendo scroll)
+    var ultX = 0, ultT = 0;
+    canvas.addEventListener('pointerdown', function (e) {
+      arrastrando = true; ultX = e.clientX; ultT = performance.now(); E.vel = 0;
+      try { canvas.setPointerCapture(e.pointerId); } catch (x) {}
+      ajustar();
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!arrastrando) return;
+      var dx = e.clientX - ultX, ahora = performance.now(), ds = Math.max(0.008, (ahora - ultT) / 1000);
+      E.rot += dx * 0.012;
+      E.vel = Math.max(-6, Math.min(6, (dx * 0.012) / ds));
+      ultX = e.clientX; ultT = ahora;
+      if (!corriendo) { paso(0); dibujar(); }
+    });
+    function soltar() { if (!arrastrando) return; arrastrando = false; kick(2200); }
+    canvas.addEventListener('pointerup', soltar);
+    canvas.addEventListener('pointercancel', soltar);
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; ajustar(); }, { threshold: 0.01 }).observe(canvas);
+    } else { visible = true; ajustar(); }
+  }
+
+  // Se crea cuando la sección está por entrar en pantalla (no antes) y el navegador está libre
+  function cuandoLibre(f) { (window.requestIdleCallback || function (g) { return setTimeout(g, 300); })(f, { timeout: 1500 }); }
+  if ('IntersectionObserver' in window) {
+    var prox = new IntersectionObserver(function (en) {
+      if (!en[0].isIntersecting) return;
+      prox.disconnect(); cuandoLibre(iniciarGL);
+    }, { rootMargin: '350px 0px' });
+    prox.observe(sec);
+  } else { cuandoLibre(iniciarGL); }
+})();
 </script>
 </body>
 </html>
