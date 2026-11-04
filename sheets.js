@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const Ofertas = require('./netlify/functions/lib/ofertas'); // misma lógica que el checkout web (fechas, vigencia, texto para Noor)
 
 const SHEET_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
 const SHEET_RANGE = 'A1:F200';
@@ -8,7 +9,9 @@ let ultimaActualizacion = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const CACHE_MAX_AGE = 2 * 60 * 60 * 1000; // 2 horas (forzar recarga)
 
+let clienteDePrueba = null; // solo para pruebas automáticas
 async function getSheetsClient() {
+  if (clienteDePrueba) return clienteDePrueba;
   const credencialesJSON = process.env.GOOGLE_CREDENTIALS_JSON;
   if (!credencialesJSON) throw new Error('Falta GOOGLE_CREDENTIALS_JSON en variables de entorno');
   
@@ -95,6 +98,45 @@ async function leerInventario() {
   }
 }
 
+// ─── Ofertas (pestaña "Ofertas" del mismo Sheet) ───
+// Se guarda la hoja cruda 60 s; la vigencia (Inicio/Fin) se evalúa en CADA consulta, así una oferta
+// que termina deja de mencionarse al instante aunque la hoja siga en caché.
+const OFERTAS_RANGE = "'Ofertas'!A1:O60";
+const OFERTAS_TTL = 60 * 1000;
+let cacheOfertas = null; // { t, filas }
+
+async function leerOfertas() {
+  const ahora = Date.now();
+  if (!cacheOfertas || ahora - cacheOfertas.t >= OFERTAS_TTL) {
+    try {
+      const sheets = await getSheetsClient();
+      const r = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: OFERTAS_RANGE });
+      cacheOfertas = { t: ahora, filas: r.data.values || [] };
+    } catch (err) {
+      if (/unable to parse range|not found|400/i.test(err.message)) {
+        cacheOfertas = { t: ahora, filas: [] };   // la pestaña "Ofertas" todavía no existe: simplemente no hay ofertas
+      } else {
+        console.error('[Sheets] ❌ Error leyendo ofertas:', err.message);
+        if (!cacheOfertas) return [];             // sin caché previo: mejor no decir nada que inventar
+      }
+    }
+  }
+  return Ofertas.procesarFilas(cacheOfertas.filas, Date.now());
+}
+
+// Bloque de texto que se agrega al prompt de Noor ('' si no hay ofertas vigentes o algo falla)
+async function textoOfertasParaNoor() {
+  try {
+    const ofertas = await leerOfertas();
+    return Ofertas.textoParaNoor(ofertas, {
+      dondeComprar: 'en la sección "Ofertas Exclusivas" de althamirgt.com (se arma y se paga con tarjeta), o aquí por WhatsApp: pídele qué perfumes elige (si la oferta lo requiere) y dile que un asesor le confirma el pedido y el pago'
+    });
+  } catch (err) {
+    console.error('[Sheets] Ofertas no disponibles para Noor:', err.message);
+    return '';
+  }
+}
+
 function formatearCatalogo(productos) {
   if (!productos || productos.length === 0) return null;
   
@@ -121,4 +163,7 @@ function formatearCatalogo(productos) {
   return texto;
 }
 
-module.exports = { leerInventario, formatearCatalogo };
+module.exports = {
+  leerInventario, formatearCatalogo, leerOfertas, textoOfertasParaNoor,
+  _pruebas: { setCliente: (c) => { clienteDePrueba = c; cacheOfertas = null; } }
+};

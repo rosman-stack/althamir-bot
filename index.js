@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { leerInventario, formatearCatalogo } = require('./sheets');
+const { leerInventario, formatearCatalogo, textoOfertasParaNoor } = require('./sheets');
 
 const app = express();
 app.set('trust proxy', 1); // Render va detrás de un proxy: así req.ip es la IP real de cada visitante
@@ -236,13 +236,14 @@ AL HARAMAIN: Amber Oud Gold Edition (5ml Q50 · 10ml Q90)
 Para catálogo completo y actualizado visita althamirgt.com`;
 
 async function getNoorSystem() {
+  const ofertas = await textoOfertasParaNoor(); // '' si no hay ofertas vigentes (nunca lanza error)
   try {
     const productos = await leerInventario();
     const catalogo = formatearCatalogo(productos);
-    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo || CATALOGO_FALLBACK);
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', catalogo || CATALOGO_FALLBACK) + ofertas;
   } catch (err) {
     console.error('[Noor] Usando catálogo de respaldo:', err.message);
-    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', CATALOGO_FALLBACK);
+    return NOOR_SYSTEM_BASE.replace('{{CATALOGO}}', CATALOGO_FALLBACK) + ofertas;
   }
 }
 

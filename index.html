@@ -259,15 +259,81 @@ html.lenis,html.lenis body{height:auto}
 .hero-humo.on{opacity:1}
 body.light-mode .hero-humo.on{opacity:.35}
 </style>
+<style id="ofertas-estilos">
+.ofertas-section{max-width:1100px;margin:0 auto;padding:70px 24px 10px;position:relative;z-index:1}
+.ofertas-section .section-header{margin-bottom:44px}
+.ofertas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;justify-content:center}
+.ofertas-grid.n1{grid-template-columns:minmax(0,520px)}
+.ofertas-grid.n2{grid-template-columns:repeat(2,minmax(0,1fr));max-width:820px;margin:0 auto}
+.oferta{--of:#c9a84c;--ofr:201,168,76;position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:34px 24px 24px;border:1px solid rgba(var(--ofr),.45);background:linear-gradient(165deg,rgba(var(--ofr),.12),rgba(var(--ofr),0) 62%),var(--bg2)}
+.oferta[data-tema="rubi"]{--of:#d0566b;--ofr:208,86,107}
+.oferta[data-tema="esmeralda"]{--of:#3fb37f;--ofr:63,179,127}
+.oferta[data-tema="medianoche"]{--of:#6f8fe0;--ofr:111,143,224}
+.oferta-badge{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);max-width:88%;padding:5px 14px;background:var(--of);color:#060d08;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oferta[data-flash] .oferta-badge::before{content:"\26A1\00a0"}
+.oferta-titulo{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;line-height:1.35;color:var(--text);letter-spacing:.5px}
+.oferta-desc{font-size:13px;line-height:1.75;color:var(--text-dim)}
+.oferta-precio{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-top:2px}
+.oferta-precio strong{font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:var(--of);line-height:1}
+.oferta-precio del{font-size:15px;color:var(--text-muted)}
+.oferta-cuenta{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--of);font-variant-numeric:tabular-nums}
+.oferta-nota{font-size:11px;line-height:1.6;color:var(--text-muted)}
+.oferta-btn{display:block;width:100%;margin-top:auto;padding:13px 18px;border:1px solid var(--of);color:var(--of);background:transparent;font-size:11px;letter-spacing:3px;text-transform:uppercase;text-decoration:none;transition:background .25s,color .25s}
+.oferta-btn:hover{background:var(--of);color:#060d08}
+.oferta>*:not(.oferta-btn):not(.oferta-badge){width:100%}
+@media(max-width:700px){
+  .ofertas-section{padding:56px 18px 4px}
+  .ofertas-grid.n2{grid-template-columns:minmax(0,1fr)}
+  .oferta-titulo{font-size:20px}
+}
+</style>
+<style id="combo-estilos">
+.oferta-incluye{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim)}
+button.oferta-btn{font-family:inherit;cursor:pointer}
+.combo-overlay{position:fixed;inset:0;z-index:3600;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,5,.84)}
+.combo-overlay[hidden]{display:none}
+.combo-panel{position:relative;width:100%;max-width:560px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--gold-border);padding:26px 20px calc(16px + env(safe-area-inset-bottom,0px));outline:none}
+.combo-cerrar{position:absolute;top:8px;right:12px;width:40px;height:40px;background:none;border:0;color:var(--text-dim);font-size:28px;line-height:1;cursor:pointer}
+.combo-etiqueta{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.combo-titulo{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;line-height:1.3;color:var(--text);padding-right:34px}
+.combo-sub{margin:6px 0 14px;font-size:13px;color:var(--text-dim)}
+.combo-slots{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.combo-slot{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 12px;border:1px dashed var(--gold-border);font-size:12px;color:var(--text-muted)}
+.combo-slot.lleno{border-style:solid;border-color:var(--gold);color:var(--text);background:var(--gold-dim)}
+.combo-slot button{background:none;border:0;color:var(--gold);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
+.combo-buscar{width:100%;padding:11px 14px;margin-bottom:10px;background:transparent;border:1px solid var(--gold-border);color:var(--text);font-family:inherit;font-size:14px;outline:none}
+.combo-lista{flex:1;min-height:120px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;border-top:1px solid var(--gold-border)}
+.combo-fila{display:flex;align-items:center;gap:12px;width:100%;padding:12px 4px;background:none;border:0;border-bottom:1px solid rgba(201,168,76,.14);color:var(--text);font-family:inherit;text-align:left;cursor:pointer}
+.combo-fila:active{background:var(--gold-dim)}
+.combo-marca{flex:0 0 96px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)}
+.combo-nombre{flex:1;font-size:15px}
+.combo-pp{font-size:12px;color:var(--text-dim)}
+.combo-cont{min-width:24px;height:24px;border-radius:12px;background:var(--gold);color:#060d08;font-size:12px;font-weight:700;line-height:24px;text-align:center;padding:0 6px}
+.combo-vacio{padding:26px 8px;text-align:center;font-size:13px;color:var(--text-dim)}
+.combo-pie{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:14px;border-top:1px solid var(--gold-border)}
+.combo-precio{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.combo-precio strong{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--gold)}
+.combo-precio del{font-size:13px;color:var(--text-muted)}
+.combo-precio span{width:100%;font-size:11px;color:var(--gold)}
+.combo-agregar{flex:0 0 auto;padding:13px 18px;border:1px solid var(--gold);background:var(--gold);color:#060d08;font-family:inherit;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer}
+.combo-agregar:disabled{background:transparent;color:var(--text-muted);border-color:var(--gold-border);cursor:not-allowed}
+@media(min-width:700px){.combo-overlay{align-items:center}.combo-panel{max-height:84vh}}
+</style>
 <style id="vial-estilos">
 .decant-section{padding:80px 24px;position:relative;z-index:1;background:var(--bg2)}
 .decant-wrap{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:56px;align-items:center}
 .decant-visual{position:relative;aspect-ratio:4/5;width:100%;max-width:380px;margin:0 auto;background:radial-gradient(ellipse 58% 46% at 50% 56%,rgba(201,168,76,.15),transparent 72%)}
 .decant-visual canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;-webkit-tap-highlight-color:transparent}
 .decant-visual canvas:active{cursor:grabbing}
+.decant-etq{position:absolute;bottom:26px;transform:translateX(-50%);padding:6px 10px;background:none;border:0;font-family:inherit;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);cursor:pointer;transition:color .25s}
+.decant-etq.on{color:var(--gold)}
 .decant-hint{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);pointer-events:none}
 .decant-text{font-size:15px;line-height:1.9;color:var(--text-dim);max-width:460px}
-.decant-sizes{display:flex;gap:12px;margin:24px 0 26px;max-width:460px}
+.decant-sizes{display:flex;gap:12px;margin:24px 0 14px;max-width:460px}
+.decant-tapa{display:flex;gap:10px;margin:0 0 26px;max-width:460px}
+.decant-tapa-btn{padding:7px 15px;border:1px solid var(--gold-border);border-radius:30px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:11px;letter-spacing:1.5px;cursor:pointer;transition:border-color .25s,background .25s,color .25s}
+.decant-tapa-btn.active{border-color:var(--gold);color:var(--text);background:var(--gold-dim)}
+.decant-sin3d .decant-tapa{display:none}
 .decant-size{flex:1;padding:14px 10px;background:transparent;border:1px solid var(--gold-border);color:var(--text);font-family:inherit;cursor:pointer;text-align:center;transition:border-color .25s,background .25s}
 .decant-size b{display:block;font-family:'Playfair Display',serif;font-size:22px;font-weight:400;letter-spacing:1px}
 .decant-size span{display:block;margin-top:5px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)}
@@ -286,8 +352,8 @@ body.light-mode .hero-humo.on{opacity:.35}
   .decant-wrap{grid-template-columns:1fr;gap:26px}
   .decant-visual{max-width:300px}
   .decant-info{text-align:center}
-  .decant-text,.decant-sizes,.decant-tonos{margin-left:auto;margin-right:auto}
-  .decant-tonos,.decant-sizes{justify-content:center}
+  .decant-text,.decant-sizes,.decant-tonos,.decant-tapa{margin-left:auto;margin-right:auto}
+  .decant-tonos,.decant-sizes,.decant-tapa{justify-content:center}
 }
 </style>
 <style id="nuevos-estilos">
@@ -395,6 +461,32 @@ body.light-mode .hero-humo.on{opacity:.35}
   <div class="section-divider-line"></div>
 </div>
 
+<!-- OFERTAS EXCLUSIVAS: se llena desde la pestaña "Ofertas" del Google Sheet -->
+<section class="ofertas-section" id="ofertas" style="display:none" aria-label="Ofertas exclusivas">
+  <div class="section-header">
+    <p class="section-label">✦ Promociones</p>
+    <h2 class="section-title">Ofertas Exclusivas</h2>
+  </div>
+  <div class="ofertas-grid" id="ofertasGrid"></div>
+</section>
+
+<!-- Selector de perfumes para los combos -->
+<div class="combo-overlay" id="comboOverlay" role="dialog" aria-modal="true" aria-labelledby="comboTitulo" hidden>
+  <div class="combo-panel" id="comboPanel" tabindex="-1">
+    <button type="button" class="combo-cerrar" id="comboCerrar" aria-label="Cerrar">×</button>
+    <p class="combo-etiqueta" id="comboEtiqueta"></p>
+    <h3 class="combo-titulo" id="comboTitulo"></h3>
+    <p class="combo-sub" id="comboSub"></p>
+    <div class="combo-slots" id="comboSlots"></div>
+    <input type="search" class="combo-buscar" id="comboBuscar" placeholder="Buscar perfume…" autocomplete="off" aria-label="Buscar perfume">
+    <div class="combo-lista" id="comboLista" data-lenis-prevent></div>
+    <div class="combo-pie">
+      <div class="combo-precio"><strong id="comboPrecio"></strong><del id="comboAntes"></del><span id="comboAhorro"></span></div>
+      <button type="button" class="combo-agregar" id="comboAgregar" disabled>Agregar al carrito</button>
+    </div>
+  </div>
+</div>
+
 <!-- ABOUT ALTHAMIR -->
 <section id="nosotros" style="background:var(--bg2);position:relative;z-index:1;">
   <div class="about-section">
@@ -482,13 +574,19 @@ body.light-mode .hero-humo.on{opacity:.35}
   <div class="decant-wrap">
     <div class="decant-visual">
       <canvas id="vialCanvas" role="img" aria-label="Atomizador de vidrio con una fragancia, en 3D"></canvas>
+      <button type="button" class="decant-etq on" data-size="0" style="left:35.9%">5 ml</button>
+      <button type="button" class="decant-etq" data-size="1" style="left:64.1%">10 ml</button>
       <p class="decant-hint">Desliza para girarlo</p>
     </div>
     <div class="decant-info">
-      <p class="decant-text">Prueba la fragancia que te gusta sin comprar el frasco completo. Elige el tamaño, mira cómo se ve tu decant y explora por familia olfativa.</p>
+      <p class="decant-text">Prueba la fragancia que te gusta sin comprar el frasco completo. Elige el tamaño (así de grandes son los de 5 y 10 ml) y explora por familia olfativa.</p>
       <div class="decant-sizes" role="group" aria-label="Tamaño del decant">
         <button type="button" class="decant-size active" data-size="0" aria-pressed="true"><b>5 ml</b><span id="decantP5">ideal para descubrir</span></button>
         <button type="button" class="decant-size" data-size="1" aria-pressed="false"><b>10 ml</b><span id="decantP10">para llevar siempre</span></button>
+      </div>
+      <div class="decant-tapa" role="group" aria-label="Vista del frasco">
+        <button type="button" class="decant-tapa-btn active" data-cap="0" aria-pressed="true">Sin tapa</button>
+        <button type="button" class="decant-tapa-btn" data-cap="1" aria-pressed="false">Con tapa</button>
       </div>
       <p class="decant-label">Explora por familia</p>
       <div class="decant-tonos" role="group" aria-label="Familia olfativa">
@@ -1158,6 +1256,10 @@ function clearCart() {
 }
 
 // Funciones de carrito que pueden ser globales
+// Texto seguro (escapa HTML) y descripción en texto plano de una línea del carrito (WhatsApp / pedido)
+function escH(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function textoItem(i) { return i.oferta ? `OFERTA ${i.name} [${(i.picks || []).join(' + ')}]` : `${i.name} (${i.size})`; }
+
 function saveCart() {
   try { localStorage.setItem('althamir_cart', JSON.stringify(cart)); } catch(e) {}
 }
@@ -1185,7 +1287,8 @@ function updateCartUI() {
   if (cartTotal) cartTotal.textContent = 'Q ' + total.toFixed(0);
 
   const countLabel = document.getElementById('cartItemCount');
-  if (countLabel) countLabel.textContent = count + (count === 1 ? ' decant' : ' decants');
+  const nDecants = cart.reduce((s, i) => s + i.qty * (i.cantidad || 1), 0);
+  if (countLabel) countLabel.textContent = nDecants + (nDecants === 1 ? ' decant' : ' decants');
 
   const clearBtn = document.getElementById('clearCartBtn');
   if (clearBtn) clearBtn.classList.toggle('visible', cart.length > 0);
@@ -1216,12 +1319,16 @@ function updateCartUI() {
       ? `<img class="cart-item-img" src="${cldThumb(item.img, 160)}" alt="${item.name}"/>`
       : `<div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;opacity:0.3">◈</div>`;
 
+    const esOf = !!item.oferta;
+    const bH = esOf ? escH(item.brand) : item.brand;
+    const nH = esOf ? escH(item.name) : item.name;
+    const sH = esOf ? escH(item.size) + ' · ' + escH((item.picks || []).join(' + ')) : item.size;
     div.innerHTML = `
       ${imgHtml}
       <div class="cart-item-info">
-        <div class="cart-item-brand">${item.brand}</div>
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-size">${item.size}</div>
+        <div class="cart-item-brand">${bH}</div>
+        <div class="cart-item-name">${nH}</div>
+        <div class="cart-item-size">${sH}</div>
         <div class="cart-item-qty">
           <button class="qty-btn" data-id="${item.id}" data-delta="-1">−</button>
           <span class="qty-num">${item.qty}</span>
@@ -1662,10 +1769,30 @@ function addToCart(card, size, price, priceDisplay) {
   }
 }
 
+// Agrega un COMBO (oferta) al carrito. El precio que se muestra aquí es solo informativo:
+// al pagar, el servidor vuelve a leer la oferta del Sheet y cobra ESE precio.
+window.altAgregarOferta = function (o) {
+  if (!o || !o.id || !Array.isArray(o.picks) || !o.picks.length) return;
+  const clavePicks = o.picks.map(n => normalizarNombre(n).replace(/[^a-z0-9]/g, '')).sort().join('+');
+  const id = 'oferta|' + o.id + '|' + clavePicks;
+  const size = `${o.cantidad} × ${o.tamano}`;
+  const existing = cart.find(i => i.id === id);
+  if (existing) { existing.qty++; existing.price = o.precio; }
+  else cart.push({ id, oferta: o.id, picks: o.picks.slice(), name: o.titulo, brand: o.relampago ? '⚡ Oferta relámpago' : 'Oferta',
+    size, cantidad: o.cantidad, price: o.precio, priceDisplay: 'Q ' + o.precio, img: '', qty: 1 });
+  saveCart();
+  updateCartUI();
+  showCartFab();
+  altTrack('add_to_cart', { currency: 'GTQ', value: o.precio, items: [altItem(o.titulo, 'Oferta', size, o.precio, 1)] });
+  showToast('✓ Combo agregado a tu orden');
+};
+window.altToast = showToast;
+
 function changeQty(id, delta) {
   const item = cart.find(i => i.id === id);
   if (!item) return;
   item.qty += delta;
+  if (item.oferta && item.qty > 10) { item.qty = 10; showToast('Máximo 10 combos por pedido. Para más, escríbenos por WhatsApp.'); }
   if (item.qty <= 0) {
     cart = cart.filter(i => i.id !== id);
   }
@@ -2092,7 +2219,8 @@ function showOrderConfirm() {
   // Render resumen
   let html = '';
   cart.forEach(item => {
-    html += `<div class="confirm-item"><span>${item.name} (${item.size}) ×${item.qty}</span><span>Q ${(item.price*item.qty).toFixed(0)}</span></div>`;
+    const etiq = item.oferta ? `${escH(item.name)} [${escH((item.picks || []).join(' + '))}] ×${item.qty}` : `${item.name} (${item.size}) ×${item.qty}`;
+    html += `<div class="confirm-item"><span>${etiq}</span><span>Q ${(item.price*item.qty).toFixed(0)}</span></div>`;
   });
   html += `<div class="confirm-total"><span>Total</span><span>Q ${total.toFixed(0)}</span></div>`;
   confirmItemsEl.innerHTML = html;
@@ -2102,13 +2230,13 @@ function showOrderConfirm() {
   let msg = `🖤 *NUEVA ORDEN ALTHAMIR*\n━━━━━━━━━━━━━━━━━━\n`;
   msg += `📋 *Orden:* ${orderNum}\n👤 *Cliente:* ${name}\n📞 *Teléfono:* ${phone}\n📍 *Dirección:* ${address}\n`;
   msg += `━━━━━━━━━━━━━━━━━━\n🛍️ *Productos:*\n`;
-  cart.forEach(item => { msg += `• ${item.name} (${item.size}) x${item.qty} — Q ${(item.price*item.qty).toFixed(0)}\n`; });
+  cart.forEach(item => { msg += `• ${textoItem(item)} x${item.qty} — Q ${(item.price*item.qty).toFixed(0)}\n`; });
   msg += `━━━━━━━━━━━━━━━━━━\n💰 *Total: Q ${total.toFixed(0)}*\n`;
   if (note) msg += `📝 *Nota:* ${note}\n`;
   msg += `_Enviado desde althamirgt.com_`;
 
   const waUrl = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
-  const productosTexto = cart.map(item => `${item.qty}x ${item.name} (${item.size})`).join(', ');
+  const productosTexto = cart.map(item => `${item.qty}x ${textoItem(item)}`).join(', ').slice(0, 1450);
 
   confirmSendBtn.href = waUrl;
   confirmSendBtn.onclick = (e) => {
@@ -2168,6 +2296,7 @@ updateCounter(totalCards, totalCards);
 // ═══ DISPONIBILIDAD DESDE GOOGLE SHEETS (CSV público) ═══
 const SHEETS_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
 const SHEETS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/export?format=csv&gid=0`;
+window.ALT_SHEETS_ID = SHEETS_ID;   // lo usa la sección de Ofertas (misma hoja, otra pestaña)
 
 // inventarioSheets y catalogoSheets declarados al inicio del DOMContentLoaded
 
@@ -2185,20 +2314,48 @@ function normalizarNombre(str) {
 // Quita del carrito los productos que en el Sheet figuran como "bajo pedido" (Disponible = No).
 // Cubre carritos guardados de antes (localStorage) o productos que cambiaron de estado.
 function quitarNoDisponiblesDelCarrito() {
-  if (!cart.length || !Object.keys(inventarioSheets).length) return [];
-  const quitados = [];
+  if (!cart.length) return [];
+  const hayInventario = Object.keys(inventarioSheets).length > 0;
+  const quitados = [], ofertasQuitadas = [], ofertasCambiadas = [];
+  let precioActualizado = false;
   cart = cart.filter(item => {
+    if (item.oferta) {
+      // Si ya se leyeron las ofertas y esta ya no está vigente (terminó o la apagaron), se quita.
+      // (Si aún no cargan no se decide aquí: el servidor la valida igualmente al pagar.)
+      const vivas = window.altOfertasVivas;
+      if (Array.isArray(vivas)) {
+        const of = vivas.find(o => o.id === item.oferta && o.tipo === 'combo');
+        if (!of) { ofertasQuitadas.push(item.name); return false; }
+        // Si cambió lo que incluye (cantidad/tamaño), hay que volver a armarla; si solo cambió el precio, se actualiza
+        if (item.size !== `${of.cantidad} × ${of.tamano}` || (item.picks || []).length !== of.cantidad) { ofertasCambiadas.push(item.name); return false; }
+        if (item.price !== of.precioNum) { item.price = of.precioNum; item.priceDisplay = 'Q ' + of.precioNum; precioActualizado = true; }
+      }
+      if (hayInventario) {
+        const bajo = (item.picks || []).find(n => { const inf = buscarEnInventario(n); return inf && !inf.disponible; });
+        if (bajo) { quitados.push(bajo); return false; }
+      }
+      return true;
+    }
+    if (!hayInventario) return true;
     const info = buscarEnInventario(item.name);
     if (info && !info.disponible) { quitados.push(item.name); return false; }
     return true;
   });
-  if (quitados.length) {
+  if (precioActualizado && !quitados.length && !ofertasQuitadas.length && !ofertasCambiadas.length) {
+    saveCart(); updateCartUI();
+    showToast('ℹ️ El precio de una oferta cambió y ya lo actualizamos en tu carrito.', 6000);
+  }
+  if (quitados.length || ofertasQuitadas.length || ofertasCambiadas.length) {
     saveCart();
     updateCartUI();
-    showToast('⚠️ Quitamos del carrito (bajo pedido): ' + [...new Set(quitados)].join(', ') + '. Consúltanos por WhatsApp para pedirlo.', 7000);
+    if (cart.length === 0) { document.getElementById('cartFab')?.classList.add('hidden'); }
+    if (ofertasCambiadas.length) showToast('⚠️ La oferta «' + [...new Set(ofertasCambiadas)].join('», «') + '» cambió y la quitamos de tu carrito. Vuelve a armarla desde Ofertas Exclusivas.', 7000);
+    else if (ofertasQuitadas.length) showToast('⚠️ La oferta «' + [...new Set(ofertasQuitadas)].join('», «') + '» ya terminó y la quitamos de tu carrito.', 7000);
+    else showToast('⚠️ Quitamos del carrito (bajo pedido): ' + [...new Set(quitados)].join(', ') + '. Consúltanos por WhatsApp para pedirlo.', 7000);
   }
-  return quitados;
+  return quitados.concat(ofertasQuitadas, ofertasCambiadas);
 }
+window.altRevisarCarrito = quitarNoDisponiblesDelCarrito;
 
 function buscarEnInventario(nombreTarjeta) {
   const clave = normalizarNombre(nombreTarjeta);
@@ -2375,6 +2532,7 @@ async function cargarInventario() {
     aplicarImagenesSheet();
     renderBestsellers();
     renderNuevosIngresos(productos);
+    window.altProductos = productos;   // lo usa el selector de perfumes de los combos
     if (window.altVialPrecios) window.altVialPrecios(productos);
     updateCounterDisponibles();
     if (typeof window.abrirProductoDesdeURL === 'function') window.abrirProductoDesdeURL();
@@ -2674,7 +2832,7 @@ async function noorSend() {
 
   // Contexto dinámico del carrito actual
   const cartContext = cart.length > 0
-    ? `\n\nCARRITO ACTUAL DEL USUARIO: ${cart.map(i => `${i.name} ${i.size} x${i.qty}`).join(', ')} — Total: Q${cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(0)}`
+    ? `\n\nCARRITO ACTUAL DEL USUARIO: ${cart.map(i => i.oferta ? `${textoItem(i)} x${i.qty}` : `${i.name} ${i.size} x${i.qty}`).join(', ')} — Total: Q${cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(0)}`
     : '';
 
   // Contexto de inventario en tiempo real desde Sheets
@@ -2690,7 +2848,8 @@ async function noorSend() {
     }
   }
 
-  const systemWithCart = NOOR_SYSTEM + cartContext + inventarioContext;
+  const ofertasContext = window.altOfertasNoor ? window.altOfertasNoor() : '';
+  const systemWithCart = NOOR_SYSTEM + cartContext + inventarioContext + ofertasContext;
 
   try {
     const groqMessages = [
@@ -3087,20 +3246,33 @@ if ('serviceWorker' in navigator) {
   var cta = document.getElementById('decantCta');
   var familia = { q: 'oriental' };
 
-  var E = { size: 0, fill: reducir ? 1 : 0, rot: 0.6, vel: AUTO, elev: 0.2, col: rgb('0.72,0.38,0.07') };   // lo que se ve
-  var OBJ = { size: 0, fill: 0, col: rgb('0.72,0.38,0.07') };                                               // a donde va
-  var elevObj = 0.2, arrastrando = false;
+  var E = { size: 0, cap: 0, fill: reducir ? 1 : 0, rot: 0.6, vel: AUTO, elev: 0.12, col: rgb('0.72,0.38,0.07') };   // lo que se ve
+  var OBJ = { size: 0, cap: 0, fill: 0, col: rgb('0.72,0.38,0.07') };                                               // a donde va
+  var elevObj = 0.12, rotScroll = 0, arrastrando = false;
   var continuo = !reducir, kickHasta = 0, ajustar = function () {};
 
   function kick(ms) { kickHasta = performance.now() + ms; ajustar(); }
 
   // ── Controles (funcionan aunque el 3D no esté disponible) ──
+  var etiquetas = sec.querySelectorAll('.decant-etq');
+  etiquetas.forEach(function (e) {      // tocar "5 ml" / "10 ml" bajo el frasco equivale a elegir el tamaño
+    e.addEventListener('click', function () { var n = e.getAttribute('data-size'); botonesTam.forEach(function (b) { if (b.getAttribute('data-size') === n) b.click(); }); });
+  });
   botonesTam.forEach(function (b) {
     b.addEventListener('click', function () {
       botonesTam.forEach(function (x) { var on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      etiquetas.forEach(function (e) { e.classList.toggle('on', e.getAttribute('data-size') === b.getAttribute('data-size')); });
       OBJ.size = Number(b.getAttribute('data-size'));
       if (!reducir && E.fill > 0.3) E.fill = 0.3;      // se vuelve a "llenar" al cambiar de tamaño
       kick(2400);
+    });
+  });
+  var botonesTapa = sec.querySelectorAll('.decant-tapa-btn');
+  botonesTapa.forEach(function (b) {
+    b.addEventListener('click', function () {
+      botonesTapa.forEach(function (x) { var on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      OBJ.cap = Number(b.getAttribute('data-cap'));
+      kick(2000);
     });
   });
   chips.forEach(function (c) {
@@ -3137,7 +3309,8 @@ if ('serviceWorker' in navigator) {
   function alScroll() {
     var r = sec.getBoundingClientRect(), vh = window.innerHeight || 800;
     var pr = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));
-    elevObj = 0.30 - 0.26 * pr;
+    elevObj = 0.20 - 0.16 * pr;
+    rotScroll = reducir ? 0 : pr * 2.6;      // el frasco gira un poco al pasar por la sección
   }
   window.addEventListener('scroll', alScroll, { passive: true });
   alScroll();
@@ -3165,96 +3338,195 @@ if ('serviceWorker' in navigator) {
     if (!gl) return sin3d();
 
     var FS = [
-      '#ifdef GL_FRAGMENT_PRECISION_HIGH', 'precision highp float;', '#else', 'precision mediump float;', '#endif',
-      '#define STEPS ' + (conMouse ? 48 : 40),
-      'uniform vec2 uRes; uniform float uSize, uFill, uRot, uElev; uniform vec3 uLiq;',
-      'float hb, rb;',
+      '#define STEPS_TOP ' + (conMouse ? 30 : 22),
+      '#define STEPS_IN ' + (conMouse ? 22 : 16),
+      '#ifdef GL_FRAGMENT_PRECISION_HIGH',
+      'precision highp float;',
+      '#else',
+      'precision mediump float;',
+      '#endif',
+      'uniform vec2 uRes; uniform float uSel, uFill, uRot, uElev, uDist, uTy, uCap; uniform vec3 uLiq;',
+      'const float RG=.20, WALL=.022, BASE=.05;',
+      'const float H5=1.35, H10=2.60;',
       'float ss(float a,float b,float x){float t=clamp((x-a)/(b-a),0.,1.);return t*t*(3.-2.*t);}',
       'vec3 rotY(vec3 v,float a){float c=cos(a),s=sin(a);return vec3(c*v.x+s*v.z,v.y,-s*v.x+c*v.z);}',
       'float sdRC(vec3 p,float R,float H,float rr){',
       '  float q0=length(p.xz)-(R-rr),q1=abs(p.y)-(H-rr);',
       '  return min(max(q0,q1),0.)+length(max(vec2(q0,q1),0.))-rr;}',
-      'float dBody(vec3 p){return sdRC(p,rb,hb,.10);}',
-      'float dNoz(vec3 p){return sdRC(p-vec3(0.,hb+.27,0.),.05,.075,.03);}',
-      'float map(vec3 p){',
-      '  float d=dBody(p);',
-      '  d=min(d,sdRC(p-vec3(0.,hb+.02,0.),.20,.075,.012));',
-      '  d=min(d,sdRC(p-vec3(0.,hb+.145,0.),.135,.05,.010));',
-      '  return min(d,dNoz(p));}',
-      'vec3 calcN(vec3 p){const float e=.0015;vec2 k=vec2(1.,-1.);',
-      '  return normalize(k.xyy*map(p+k.xyy*e)+k.yyx*map(p+k.yyx*e)+k.yxy*map(p+k.yxy*e)+k.xxx*map(p+k.xxx*e));}',
+      'float sdCyl(vec3 p,float R,float H){',
+      '  vec2 q=vec2(length(p.xz)-R,abs(p.y)-H);',
+      '  return min(max(q.x,q.y),0.)+length(max(q,0.));}',
+      'float sdCap(vec3 p,vec3 a,vec3 b,float r){',
+      '  vec3 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h)-r;}',
       'float strip(float az,float a0,float w,float y,float h0,float h1){',
       '  float da=mod(az-a0+3.14159265,6.2831853)-3.14159265;',
       '  return ss(w,0.,abs(da))*ss(h0-.2,h0,y)*ss(h1+.2,h1,y);}',
       'vec3 env(vec3 d){',
       '  float y=d.y,az=atan(d.z,d.x);',
-      '  vec3 c=mix(vec3(.015,.035,.025),vec3(.10,.15,.12),clamp(y*.5+.5,0.,1.));',
-      '  vec3 warm=vec3(1.,.88,.62);',
-      '  c+=warm*(2.6*strip(az,.9,.22,y,-.6,.8)+1.6*strip(az,-2.2,.14,y,-.5,.7)+.8*strip(az,2.6,.08,y,-.7,.9));',
-      '  c+=warm*(1.1*ss(.72,.97,y));',
+      '  vec3 c=mix(vec3(.02,.045,.032),vec3(.12,.18,.14),clamp(y*.5+.5,0.,1.));',
+      '  vec3 warm=vec3(1.,.9,.68);',
+      '  c+=warm*(3.2*strip(az,.9,.20,y,-.6,.8)+2.0*strip(az,-2.2,.13,y,-.5,.7)+1.0*strip(az,2.6,.08,y,-.7,.9));',
+      '  c+=warm*(1.2*ss(.72,.97,y));',
       '  c+=vec3(.8,.6,.25)*(.22*ss(-.2,-.9,y));',
       '  return c;}',
-      'void main(){',
-      '  hb=.50+.28*uSize; rb=.30+.05*uSize;',
-      '  vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.; uv.x*=uRes.x/uRes.y;',
-      '  vec3 T=vec3(0.,.19,0.); vec3 ro=T+3.9*vec3(0.,sin(uElev),cos(uElev));',
-      '  vec3 fwd=normalize(T-ro); vec3 right=vec3(1.,0.,0.); vec3 up=cross(right,fwd);',
-      '  vec3 rd=normalize(uv.x*.32*right+uv.y*.32*up+fwd);',
-      '  float t=0.,dmin=1e9; bool hit=false;',
-      '  for(int i=0;i<STEPS;i++){',
-      '    float d=map(ro+rd*t);',
-      '    dmin=min(dmin,d/max(t,.5));',
-      '    if(d<.0008){hit=true;break;}',
-      '    t+=d*.9; if(t>9.)break;}',
-      '  if(!hit){',
-      '    float cov=1.-ss(0.,(.64/uRes.y)*1.2,dmin);',
-      '    gl_FragColor=vec4(vec3(.55,.45,.22)*cov*.30,cov*.30);return;}',
-      '  vec3 P=ro+rd*t; vec3 n=calcN(P);',
-      '  float ndv=clamp(-dot(n,rd),0.,1.);',
-      '  vec3 rf=reflect(rd,n);',
-      '  vec3 refl=env(rotY(normalize(rf),uRot));',
-      '  float db=dBody(P),dm=map(P),dn=dNoz(P);',
-      '  vec3 ld=normalize(vec3(.4,.6,.7)); float dif=clamp(dot(n,ld),0.,1.);',
-      '  vec3 col; float al;',
-      '  if(abs(dm-db)<1e-5){',
-      '    float F=.06+.94*pow(1.-ndv,4.);',
-      '    float eta=1./1.5; float k=1.-eta*eta*(1.-ndv*ndv);',
-      '    vec3 rdi=normalize(eta*rd+(eta*ndv-sqrt(max(k,0.)))*n);',
-      '    float ri=rb-.045,rl=ri-.004,yb=-hb+.12,ytop=hb-.11,yl=yb+(ytop-yb)*uFill;',
-      '    float a=rdi.x*rdi.x+rdi.z*rdi.z+1e-9; float b=2.*(P.x*rdi.x+P.z*rdi.z); float c=P.x*P.x+P.z*P.z-rl*rl;',
-      '    float disc=b*b-4.*a*c; float sq=sqrt(max(disc,0.));',
-      '    float t0=(-b-sq)/(2.*a),t1=(-b+sq)/(2.*a);',
-      '    float ry=abs(rdi.y)<1e-6?1e-6:rdi.y;',
-      '    float ta=(yb-P.y)/ry,tb=(yl-P.y)/ry;',
-      '    float tmin=max(max(t0,min(ta,tb)),0.),tmax=min(t1,max(ta,tb));',
-      '    float L=disc>0.?max(tmax-tmin,0.):0.;',
-      '    float yin=P.y+rdi.y*tmin;',
-      '    float aT=1.-exp(-L*6.);',
-      '    vec3 sh=uLiq*(.34+.46*ss(0.,.7,L));',
-      '    sh+=uLiq*(.55*ss(.07,0.,yl-yin)*(L>0.?1.:0.));',
-      '    sh+=uLiq*min(env(rotY(rdi,uRot)),vec3(1.4))*.30;',
-      '    sh+=uLiq*(.25*ss(.35,0.,L));',
-      '    vec3 tint=vec3(.55,.75,.65)*.10;',
-      '    vec3 tr=aT*sh+(1.-aT)*tint; float trA=aT+(1.-aT)*.04;',
-      '    col=F*refl+(1.-F)*tr; al=F+(1.-F)*trA;',
-      '    float phi=atan(P.z,P.x)+uRot; float yb0=-.12,yb1=.16;',
-      '    float v=(P.y-yb0)/(yb1-yb0); float u=phi/6.2831853*8.;',
-      '    float inb=(v>0.&&v<1.)?1.:0.;',
-      '    float d1=abs(fract(u)-.5)+abs(fract(v)-.5);',
-      '    float l=ss(.06,0.,abs(d1-.40))+ss(.05,0.,abs(d1-.20));',
-      '    l=clamp(l+ss(.11,.06,d1),0.,1.);',
-      '    float edge=ss(.04,0.,abs(v))+ss(.04,0.,abs(v-1.));',
-      '    float m=clamp(l+edge,0.,1.)*inb;',
-      '    vec3 gold=vec3(.86,.68,.28)*(.55+.6*dif)+refl*vec3(.8,.65,.3)*.5;',
-      '    col=col*(1.-m*.9)+gold*m*.9; al=clamp(al*(1.-m*.9)+m*.9,0.,1.);',
-      '  } else if(abs(dm-dn)<1e-5){',
-      '    col=vec3(.05,.05,.055)*(.5+dif)+refl*.55+vec3(pow(clamp(dot(rf,ld),0.,1.),40.)*1.2); al=1.;',
-      '  } else {',
-      '    vec3 gc=vec3(.85,.66,.26);',
-      '    col=gc*(.20+.55*dif)+refl*gc*.62;',
-      '    col*=1.-.35*ss(.004,0.,abs(P.y-(hb+.02+.035))); al=1.;',
+      '// ----- tapa lisa (sube al quitarla) -----',
+      'float sdCapa(vec3 p,float yT){return sdRC(p-vec3(0.,yT+.44+(1.-uCap)*1.1,0.),.215,.28,.05);}',
+      '// ----- piezas opacas de arriba: collar estriado y boquilla -----',
+      'float mapTop(vec3 p,float yT){',
+      '  float d=sdRC(p-vec3(0.,yT+.035,0.),.215,.135,.012);',
+      '  d=min(d,sdRC(p-vec3(0.,yT+.22,0.),.14,.05,.01));',
+      '  d=min(d,sdRC(p-vec3(0.,yT+.335,0.),.095,.065,.03));',
+      '  if(uCap>.001)d=min(d,sdCapa(p,yT));',
+      '  return d;}',
+      'vec3 nTop(vec3 p,float yT){const float e=.0012;vec2 k=vec2(1.,-1.);',
+      '  return normalize(k.xyy*mapTop(p+k.xyy*e,yT)+k.yyx*mapTop(p+k.yyx*e,yT)+k.yxy*mapTop(p+k.yxy*e,yT)+k.xxx*mapTop(p+k.xxx*e,yT));}',
+      '// ----- interior del vidrio: resorte, conector y tubo de succión curvo -----',
+      'float mapIn(vec3 p,float yT,out float id){',
+      '  float rt=.017;',
+      '  float d=sdCap(p,vec3(0.,yT-.34,0.),vec3(0.,BASE+.55,0.),rt);',
+      '  d=min(d,sdCap(p,vec3(0.,BASE+.55,0.),vec3(.010,BASE+.45,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(.010,BASE+.45,0.),vec3(.034,BASE+.37,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(.034,BASE+.37,0.),vec3(.046,BASE+.29,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(.046,BASE+.29,0.),vec3(.036,BASE+.21,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(.036,BASE+.21,0.),vec3(.012,BASE+.15,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(.012,BASE+.15,0.),vec3(-.014,BASE+.10,0.),rt));',
+      '  d=min(d,sdCap(p,vec3(-.014,BASE+.10,0.),vec3(-.030,BASE+.045,0.),rt));',
+      '  id=1.;',
+      '  float sp=sdCyl(p-vec3(0.,yT-.16,0.),.058,.14);',
+      '  if(sp<d){d=sp;id=2.;}',
+      '  float cn=sdCyl(p-vec3(0.,yT-.315,0.),.034,.025);',
+      '  if(cn<d){d=cn;id=3.;}',
+      '  return d;}',
+      'bool interior(vec3 P0,vec3 dir,float Lmax,float yT,out vec3 col){',
+      '  float ax=dot(dir.xz,dir.xz)+1e-9;',
+      '  float tc=clamp(-dot(P0.xz,dir.xz)/ax,0.,Lmax);',
+      '  if(length(P0.xz+dir.xz*tc)>.11)return false;',
+      '  float t=0.,id=0.;bool hit=false;',
+      '  for(int i=0;i<STEPS_IN;i++){',
+      '    float dd=mapIn(P0+dir*t,yT,id);',
+      '    if(dd<.0012){hit=true;break;}',
+      '    t+=dd;if(t>Lmax)break;}',
+      '  if(!hit)return false;',
+      '  vec3 p=P0+dir*t;float i2;const float e=.002;vec2 k=vec2(1.,-1.);',
+      '  vec3 n=normalize(k.xyy*mapIn(p+k.xyy*e,yT,i2)+k.yyx*mapIn(p+k.yyx*e,yT,i2)+k.yxy*mapIn(p+k.yxy*e,yT,i2)+k.xxx*mapIn(p+k.xxx*e,yT,i2));',
+      '  float lit=.35+.65*clamp(dot(n,normalize(vec3(.4,.6,.7))),0.,1.);',
+      '  if(id<1.5)col=vec3(.86,.90,.93)*lit;',
+      '  else if(id<2.5){',
+      '    float hx=fract(p.y*22.-atan(p.z,p.x)/6.2831853);',
+      '    float coil=ss(.30,.5,hx)*(1.-ss(.5,.7,hx));',
+      '    col=mix(vec3(.62,.64,.68),vec3(.10,.10,.12),coil)*lit;}',
+      '  else col=vec3(.80,.82,.85)*lit;',
+      '  return true;}',
+      '// ----- un decant completo (cx = posición, s = escala, Hg = altura del vidrio) -----',
+      'vec4 vial(vec3 ro,vec3 rd,float cx,float s,float Hg,out float tOut){',
+      '  tOut=1e9;',
+      '  vec3 o=(ro-vec3(cx,0.,0.))/s; vec3 d=rd;',
+      '  float a=dot(d.xz,d.xz)+1e-9,b=dot(o.xz,d.xz),oo=dot(o.xz,o.xz);',
+      '  float yT=Hg;',
+      '  float disc=b*b-a*(oo-.23*.23);',
+      '  if(disc<0.)return vec4(0.);',
+      '  float sq=sqrt(disc),tb0=(-b-sq)/a,tb1=(-b+sq)/a;',
+      '  float ya=o.y+d.y*tb0,yb=o.y+d.y*tb1;',
+      '  float yTop=yT+(uCap>.001?.78+(1.-uCap)*1.1:.45);',
+      '  if(max(ya,yb)<-.02||min(ya,yb)>yTop)return vec4(0.);',
+      '  vec3 ld=normalize(vec3(.4,.6,.7));',
+      '  // piezas opacas',
+      '  bool hitO=false;float tO=1e9;',
+      '  if(max(ya,yb)>yT-.12){',
+      '    float t=max(tb0,0.);',
+      '    for(int i=0;i<STEPS_TOP;i++){',
+      '      float dd=mapTop(o+d*t,yT);',
+      '      if(dd<.0007){hitO=true;tO=t;break;}',
+      '      t+=dd*.95;if(t>tb1)break;}}',
+      '  // cara frontal del vidrio',
+      '  float disc2=b*b-a*(oo-RG*RG);',
+      '  bool hitG=false;float tg=0.,t1o=0.;',
+      '  if(disc2>0.){',
+      '    float sq2=sqrt(disc2);tg=(-b-sq2)/a;t1o=(-b+sq2)/a;',
+      '    float yg=o.y+d.y*tg;',
+      '    hitG=(yg>=0.&&yg<=yT&&tg>0.);}',
+      '  if(!hitG&&!hitO)return vec4(0.);',
+      '  if(hitO&&(!hitG||tO<tg)){',
+      '    vec3 P=o+d*tO;vec3 n=nTop(P,yT);',
+      '    vec3 refl=env(rotY(normalize(reflect(d,n)),uRot));',
+      '    float dif=clamp(dot(n,ld),0.,1.);',
+      '    float ph=atan(P.z,P.x)+uRot;',
+      '    bool esCapa=uCap>.001&&sdCapa(P,yT)<.003;',
+      '    float ribs=1.;',
+      '    if(P.y<yT+.17&&!esCapa)ribs=.5+.5*cos(ph*40.);',
+      '    vec3 col=vec3(.022,.022,.028)*(.5+dif)*(.7+.5*ribs)+refl*(.20+.30*ribs);',
+      '    col+=vec3(pow(clamp(dot(reflect(d,n),ld),0.,1.),38.)*.9);',
+      '    if(esCapa){',
+      '      col=vec3(.018,.018,.022)*(.5+dif)+refl*.42;',
+      '      col+=vec3(pow(clamp(dot(reflect(d,n),ld),0.,1.),30.)*1.0);',
+      '      col*=1.-.55*ss(.012,0.,abs(P.y-(yT+.20+(1.-uCap)*1.1)));}   // línea donde la tapa asienta sobre el collar',
+      '    else if(P.y>yT+.27){',
+      '      float da=mod(ph+3.14159265,6.2831853)-3.14159265;',
+      '      if(length(vec2(da*.095,P.y-(yT+.352)))<.026)col=vec3(.10,.10,.115);}',
+      '    tOut=tO*s;',
+      '    return vec4(min(col,1.),1.);}',
+      '  // ---- vidrio ----',
+      '  vec3 Pg=o+d*tg;vec3 ng=normalize(vec3(Pg.x,0.,Pg.z));',
+      '  float ndv=clamp(-dot(ng,d),0.,1.);',
+      '  vec3 refl=env(rotY(normalize(reflect(d,ng)),uRot));',
+      '  float F=.05+.95*pow(1.-ndv,5.);',
+      '  float RI=RG-WALL;',
+      '  float disc3=b*b-a*(oo-RI*RI);',
+      '  float t0i=1e9,t1i=0.;float pathF=t1o-tg;float pathB=0.;bool cav=false;',
+      '  if(disc3>0.){',
+      '    float sq3=sqrt(disc3);float ti=(-b-sq3)/a;t1i=(-b+sq3)/a;',
+      '    float yi=o.y+d.y*ti;',
+      '    if(yi>BASE&&yi<yT+.05&&ti>tg){t0i=ti;pathF=ti-tg;pathB=t1o-t1i;cav=true;}}',
+      '  float Aw=1.-exp(-pathF*9.),Ab=1.-exp(-pathB*9.);',
+      '  float Ag=1.-(1.-Aw)*(1.-Ab);',
+      '  vec3 inside=vec3(0.);float inA=0.;',
+      '  if(cav){',
+      '    vec3 Pi=o+d*t0i;',
+      '    float yl=BASE+.02+(yT-.16-BASE-.02)*uFill;',
+      '    bool liq=Pi.y<yl&&Pi.y>BASE;',
+      '    vec3 dl=d;float Le=0.;vec3 dback=d;',
+      '    float ax;',
+      '    if(liq){',
+      '      vec3 ni=normalize(vec3(Pi.x,0.,Pi.z));',
+      '      dl=refract(d,ni,1./1.36);',
+      '      ax=dot(dl.xz,dl.xz)+1e-9;',
+      '      float te=-2.*dot(Pi.xz,dl.xz)/ax;',
+      '      float tsl=1e9;',
+      '      if(dl.y>1e-4)tsl=(yl-Pi.y)/dl.y;else if(dl.y<-1e-4)tsl=(BASE-Pi.y)/dl.y;',
+      '      Le=min(te,tsl);',
+      '      vec3 Pe=Pi+dl*Le;',
+      '      vec3 ne=(tsl<te&&dl.y>0.)?vec3(0.,-1.,0.):-normalize(vec3(Pe.x,0.,Pe.z));',
+      '      dback=refract(dl,ne,1.36);',
+      '      if(dot(dback,dback)<.01)dback=reflect(dl,ne);',
+      '      vec3 back=env(rotY(normalize(dback),uRot));',
+      '      vec3 sig=(vec3(1.)-uLiq)*3.2+.35;',
+      '      vec3 sh=uLiq*(.50+.60*ss(0.,.34,Le))+back*exp(-sig*Le)*.85;',
+      '      sh+=uLiq*(.60*ss(.05,0.,yl-Pi.y));',
+      '      float aL=1.-exp(-Le*7.);',
+      '      inside=sh*aL;inA=aL;}',
+      '    else{ax=dot(d.xz,d.xz)+1e-9;Le=-2.*dot(Pi.xz,d.xz)/ax;}',
+      '    vec3 oc;',
+      '    if(interior(Pi,dl,Le,yT,oc)){',
+      '      if(liq)oc=mix(oc,uLiq*(.75+.5*dot(oc,vec3(.33))),.45);',
+      '      inside=mix(inside,oc,.88);inA=max(inA,.88);}',
       '  }',
-      '  gl_FragColor=vec4(min(col,1.),al);',
+      '  vec3 tint=vec3(.62,.82,.72);',
+      '  vec3 Cw=tint*Ag*(.22+.55*ss(.2,1.,1.-ndv));',
+      '  vec3 trC=Cw+(1.-Ag)*inside;float trA=Ag+(1.-Ag)*inA;',
+      '  vec3 col=F*refl+(1.-F)*trC;float al=F+(1.-F)*trA;',
+      '  tOut=tg*s;',
+      '  return vec4(min(col,1.),clamp(al,0.,1.));}',
+      'void main(){',
+      '  vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.;uv.x*=uRes.x/uRes.y;',
+      '  vec3 T=vec3(0.,uTy,0.);',
+      '  vec3 ro=T+uDist*vec3(0.,sin(uElev),cos(uElev));',
+      '  vec3 fwd=normalize(T-ro),right=vec3(1.,0.,0.),up=cross(right,fwd);',
+      '  vec3 rd=normalize(uv.x*.32*right+uv.y*.32*up+fwd);',
+      '  float t5,t10;',
+      '  vec4 v5=vial(ro,rd,-.42,1.,H5,t5)*mix(.50,1.,1.-uSel);',
+      '  vec4 v10=vial(ro,rd,.42,1.,H10,t10)*mix(.50,1.,uSel);',
+      '  vec4 nr=v5,fr=v10;if(t10<t5){nr=v10;fr=v5;}',
+      '  gl_FragColor=vec4(min(nr.rgb+fr.rgb*(1.-nr.a),1.),nr.a+fr.a*(1.-nr.a));',
       '}'
     ].join('\n');
     var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
@@ -3278,7 +3550,7 @@ if ('serviceWorker' in navigator) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    var U = {}; ['uRes', 'uSize', 'uFill', 'uRot', 'uElev', 'uLiq'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+    var U = {}; ['uRes', 'uSel', 'uFill', 'uRot', 'uElev', 'uDist', 'uTy', 'uCap', 'uLiq'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
     var calidad = 1, anchoPrev = 0;
     function medir() {
@@ -3289,11 +3561,20 @@ if ('serviceWorker' in navigator) {
       if (cw !== canvas.width || ch !== canvas.height) { canvas.width = cw; canvas.height = ch; gl.viewport(0, 0, cw, ch); }
       anchoPrev = w;
     }
+    var capEtq = -1;
+    function ponerEtiquetas(dist) {          // las etiquetas "5 ml / 10 ml" siguen a los frascos cuando cambia la cámara
+      var mitad = 2 * dist * 0.32 * (canvas.width / canvas.height), f = 100 * 0.42 / mitad;
+      if (etiquetas[0]) etiquetas[0].style.left = (50 - f) + '%';
+      if (etiquetas[1]) etiquetas[1].style.left = (50 + f) + '%';
+    }
     function dibujar() {
       gl.uniform2f(U.uRes, canvas.width, canvas.height);
-      gl.uniform1f(U.uSize, E.size);
+      gl.uniform1f(U.uSel, E.size);   // 0 = 5 ml resaltado, 1 = 10 ml resaltado
+      var dist = 5.8 + 0.7 * E.cap;
+      gl.uniform1f(U.uDist, dist); gl.uniform1f(U.uTy, 1.45 + 0.17 * E.cap); gl.uniform1f(U.uCap, E.cap);
+      if (Math.abs(E.cap - capEtq) > 0.002) { capEtq = E.cap; ponerEtiquetas(dist); }
       gl.uniform1f(U.uFill, E.fill);
-      gl.uniform1f(U.uRot, E.rot);
+      gl.uniform1f(U.uRot, E.rot + rotScroll);
       gl.uniform1f(U.uElev, E.elev);
       gl.uniform3f(U.uLiq, E.col[0], E.col[1], E.col[2]);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -3301,11 +3582,12 @@ if ('serviceWorker' in navigator) {
     function paso(s) {
       if (!reducir) {
         E.size += (OBJ.size - E.size) * (1 - Math.exp(-s * 7));
+        E.cap += (OBJ.cap - E.cap) * (1 - Math.exp(-s * 5));
         E.fill += (OBJ.fill - E.fill) * (1 - Math.exp(-s * 1.7));
         var k = 1 - Math.exp(-s * 6);
         for (var i = 0; i < 3; i++) E.col[i] += (OBJ.col[i] - E.col[i]) * k;
         E.elev += (elevObj - E.elev) * (1 - Math.exp(-s * 4));
-      } else { E.size = OBJ.size; E.fill = OBJ.fill; E.col = OBJ.col.slice(); E.elev = elevObj; }
+      } else { E.size = OBJ.size; E.cap = OBJ.cap; E.fill = OBJ.fill; E.col = OBJ.col.slice(); E.elev = elevObj; }
       if (!arrastrando) { E.rot += E.vel * s; E.vel += (AUTO - E.vel) * (1 - Math.exp(-s * 1.6)); }
     }
 
@@ -3371,6 +3653,315 @@ if ('serviceWorker' in navigator) {
     }, { rootMargin: '350px 0px' });
     prox.observe(sec);
   } else { cuandoLibre(iniciarGL); }
+})();
+</script>
+<script>
+// ═══ OFERTAS EXCLUSIVAS ═══
+// Se editan SIN tocar código: en el Google Sheet, pestaña "Ofertas" (una fila = una oferta).
+// Columnas: Activa | Titulo | Etiqueta | Descripcion | Precio | PrecioAntes | Inicio | Fin | Boton | Enlace | Estilo | Nota
+(function () {
+  'use strict';
+  var HOJA = 'Ofertas';              // nombre exacto de la pestaña del Sheet
+  var MAX_OFERTAS = 6;               // máximo de ofertas visibles a la vez
+  var DIAS_CONTADOR = 7;             // con menos de estos días para terminar, se muestra cuenta regresiva en vivo
+  var REFRESCO_MS = 300000;          // se vuelve a leer el Sheet cada 5 minutos
+  var sec = document.getElementById('ofertas'), grid = document.getElementById('ofertasGrid');
+  if (!sec || !grid) return;
+  var WA = (typeof WA_NUM !== 'undefined' && WA_NUM) ? WA_NUM : '50252547623';
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  var ofertas = [];                  // las vigentes, ya procesadas
+  var timer = 0, visible = true;
+
+  // ── CSV (con comillas y saltos de línea dentro de una celda) ──
+  function filas(texto) {
+    var out = [], fila = [], c = '', q = false;
+    texto = String(texto).replace(/^\uFEFF/, '');
+    for (var i = 0; i < texto.length; i++) {
+      var ch = texto[i];
+      if (q) { if (ch === '"') { if (texto[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ',') { fila.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && texto[i + 1] === '\n') i++; fila.push(c); c = ''; out.push(fila); fila = []; }
+      else c += ch;
+    }
+    if (c !== '' || fila.length) { fila.push(c); out.push(fila); }
+    return out.filter(function (f) { return f.some(function (x) { return String(x).trim() !== ''; }); });
+  }
+  function norm(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, ''); }
+
+  // ── Fechas: siempre hora de Guatemala (UTC-6, sin horario de verano), sin importar dónde esté quien visita ──
+  function fecha(txt, fin) {
+    txt = String(txt || '').trim();
+    if (!txt) return null;
+    var y, mo, d, h = fin ? 23 : 0, mi = fin ? 59 : 0, se = fin ? 59 : 0, m;
+    if ((m = txt.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/))) {
+      y = +m[1]; mo = +m[2]; d = +m[3];
+    } else if ((m = txt.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})(?:[ ,T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/))) {
+      d = +m[1]; mo = +m[2]; y = +m[3]; if (y < 100) y += 2000;
+      if (mo > 12 && d <= 12) { var t = d; d = mo; mo = t; }       // 11/30/2026 → mes/día
+    } else return null;
+    if (m[4] !== undefined) { h = +m[4]; mi = +m[5]; se = m[6] !== undefined ? +m[6] : (fin ? 59 : 0); }
+    if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+    return Date.UTC(y, mo - 1, d, h + 6, mi, se);
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function cuenta(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400); s %= 86400;
+    var h = Math.floor(s / 3600); s %= 3600; var m = Math.floor(s / 60); s %= 60;
+    return (d > 0 ? d + (d === 1 ? ' día ' : ' días ') : '') + pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  function fechaCorta(ts) { var g = new Date(ts - 6 * 3600000); return g.getUTCDate() + ' ' + MESES[g.getUTCMonth()]; }
+
+  // ── Lectura de la hoja ──
+  function procesar(texto) {
+    var f = filas(texto);
+    if (f.length < 2) return [];
+    var cab = f[0].map(norm);
+    var ix = function () { for (var a = 0; a < arguments.length; a++) { var i = cab.indexOf(arguments[a]); if (i > -1) return i; } return -1; };
+    var I = { act: ix('activa', 'activo'), tit: ix('titulo', 'oferta'), eti: ix('etiqueta'), des: ix('descripcion'), pre: ix('precio'),
+      ant: ix('precioantes', 'antes'), ini: ix('inicio'), fin: ix('fin'), bot: ix('boton'), enl: ix('enlace'), est: ix('estilo'), not: ix('nota'),
+      tip: ix('tipo'), can: ix('cantidad'), tam: ix('tamano', 'tamanoml', 'size') };
+    if (I.act < 0 || I.tit < 0) return [];                // protección: si Google devolviera otra hoja, no se muestra nada
+    var ahora = Date.now(), res = [], usados = {};
+    for (var r = 1; r < f.length; r++) {
+      var c = f[r], v = function (i) { return i > -1 && c[i] !== undefined ? String(c[i]).trim() : ''; };
+      var act = norm(v(I.act));
+      if (!(act === 'si' || act === 'yes' || act === 'true' || act === '1')) continue;
+      var titulo = v(I.tit); if (!titulo) continue;
+      var ini = fecha(v(I.ini), false), fin = fecha(v(I.fin), true);
+      if (ini !== null && ahora < ini) continue;           // todavía no empieza
+      if (fin !== null && ahora >= fin) continue;          // ya terminó
+      var tema = norm(v(I.est));
+      tema = { rojo: 'rubi', rubi: 'rubi', verde: 'esmeralda', esmeralda: 'esmeralda', azul: 'medianoche', medianoche: 'medianoche' }[tema] || 'dorado';
+      var precio = v(I.pre), antes = v(I.ant);
+      if (/^\d+(\.\d+)?$/.test(precio)) precio = 'Q' + precio;
+      if (/^\d+(\.\d+)?$/.test(antes)) antes = 'Q' + antes;
+      // Misma regla que el servidor (lib/ofertas.js): el id sale del título y el combo solo vale si está bien configurado
+      var id = norm(titulo).slice(0, 60) || ('oferta' + r);
+      if (usados[id]) id += '-' + r;
+      usados[id] = true;
+      var precioNum = parseFloat(String(v(I.pre)).replace(/[^0-9.]/g, ''));
+      precioNum = isFinite(precioNum) && precioNum > 0 ? precioNum : null;
+      var o = { id: id, titulo: titulo, etiqueta: v(I.eti), desc: v(I.des), precio: precio, precioNum: precioNum, antes: antes, inicio: ini, fin: fin,
+        boton: v(I.bot) || 'Quiero esta oferta', enlace: v(I.enl), tema: tema, nota: v(I.not),
+        relampago: /relampago|flash/.test(norm(v(I.eti))), tipo: 'info', cantidad: null, tamano: null };
+      if (norm(v(I.tip)) === 'combo') {
+        var cant = parseInt(v(I.can), 10), tm = norm(v(I.tam)).replace(/ml$/, '');
+        var tamano = tm === '5' ? '5 ml' : tm === '10' ? '10 ml' : null;
+        if (isFinite(cant) && cant >= 1 && cant <= 6 && tamano && precioNum !== null && precioNum <= 5000) { o.tipo = 'combo'; o.cantidad = cant; o.tamano = tamano; o.boton = v(I.bot) || 'Armar mi combo'; }
+        else console.warn('[Ofertas] Combo mal configurado, se muestra como oferta informativa:', titulo);
+      }
+      res.push(o);
+      if (res.length >= MAX_OFERTAS) break;
+    }
+    return res;
+  }
+
+  // ── Pintado (todo con textContent: lo que se escriba en el Sheet nunca se interpreta como HTML) ──
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt) e.textContent = txt; return e; }
+  function enlaceDe(o) {
+    var l = o.enlace;
+    if (/^#[\w-]+$/.test(l)) return { href: l, externo: false };
+    if (/^https?:\/\//i.test(l)) return { href: l, externo: true };
+    var msg = 'Hola Althamir 🖤, quiero la oferta: ' + o.titulo + (o.precio ? ' (' + o.precio + ')' : '') + '. ¿Me ayudas?';
+    return { href: 'https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), externo: true };
+  }
+  function pintar() {
+    grid.textContent = '';
+    ofertas.forEach(function (o) {
+      var a = el('article', 'oferta'); a.setAttribute('data-tema', o.tema);
+      if (/relampago/.test(norm(o.etiqueta))) a.setAttribute('data-flash', '');
+      if (o.etiqueta) a.appendChild(el('span', 'oferta-badge', o.etiqueta));
+      a.appendChild(el('h3', 'oferta-titulo', o.titulo));
+      if (o.desc) a.appendChild(el('p', 'oferta-desc', o.desc));
+      if (o.precio) {
+        var pr = el('div', 'oferta-precio'); pr.appendChild(el('strong', '', o.precio));
+        if (o.antes) pr.appendChild(el('del', '', o.antes));
+        a.appendChild(pr);
+      }
+      if (o.tipo === 'combo') a.appendChild(el('p', 'oferta-incluye', o.cantidad + ' × ' + o.tamano + ' · tú eliges los perfumes'));
+      if (o.fin !== null) {
+        var resto = o.fin - Date.now();
+        var cu = el('p', 'oferta-cuenta');
+        if (resto <= DIAS_CONTADOR * 86400000) { cu.setAttribute('data-fin', o.fin); cu.textContent = 'Termina en ' + cuenta(resto); }
+        else cu.textContent = 'Hasta el ' + fechaCorta(o.fin);
+        a.appendChild(cu);
+      }
+      if (o.nota) a.appendChild(el('p', 'oferta-nota', o.nota));
+      var b;
+      if (o.tipo === 'combo') {
+        b = el('button', 'oferta-btn', o.boton); b.type = 'button';
+        b.addEventListener('click', function () { if (window.altTrack) window.altTrack('oferta_click', { oferta: o.titulo }); abrirPicker(o); });
+      } else {
+        var l = enlaceDe(o); b = el('a', 'oferta-btn', o.boton); b.href = l.href;
+        if (l.externo) { b.target = '_blank'; b.rel = 'noopener noreferrer'; }
+        b.addEventListener('click', function () { if (window.altTrack) window.altTrack('oferta_click', { oferta: o.titulo }); });
+      }
+      a.appendChild(b);
+      grid.appendChild(a);
+    });
+    grid.className = 'ofertas-grid' + (ofertas.length === 1 ? ' n1' : ofertas.length === 2 ? ' n2' : '');
+    sec.style.display = ofertas.length ? '' : 'none';
+    ajustarReloj();
+    window.altOfertasVivas = ofertas;                      // lo usa el carrito para quitar ofertas que ya terminaron
+    if (window.altRevisarCarrito) window.altRevisarCarrito();
+  }
+
+  // ── Cuenta regresiva: un solo reloj de 1 s, solo mientras la sección se ve ──
+  function tick() {
+    var ahora = Date.now(), vencio = false;
+    var cs = grid.querySelectorAll('.oferta-cuenta[data-fin]');
+    for (var i = 0; i < cs.length; i++) {
+      var resto = (+cs[i].getAttribute('data-fin')) - ahora;
+      if (resto <= 0) vencio = true; else cs[i].textContent = 'Termina en ' + cuenta(resto);
+    }
+    if (vencio) {                                          // una oferta terminó: se quita sola
+      ofertas = ofertas.filter(function (o) { return o.fin === null || o.fin > ahora; });
+      pintar();
+    }
+  }
+  function ajustarReloj() {
+    var hay = !!grid.querySelector('.oferta-cuenta[data-fin]');
+    if (hay && visible && !document.hidden) { if (!timer) timer = setInterval(tick, 1000); }
+    else if (timer) { clearInterval(timer); timer = 0; }
+  }
+  if ('IntersectionObserver' in window) new IntersectionObserver(function (en) { visible = en[0].isIntersecting; if (visible) tick(); ajustarReloj(); }).observe(sec);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); ajustarReloj(); });
+
+  // ── Selector de perfumes del combo ──
+  var ov = document.getElementById('comboOverlay');
+  var P = { o: null, picks: [], prods: [], filtro: '' };
+  function $(id) { return document.getElementById(id); }
+  function precioDe(p, tam) { var n = parseFloat(String(tam === '5 ml' ? p.ml5 : p.ml10).replace(/[^0-9.]/g, '')); return isFinite(n) && n > 0 ? n : 0; }
+  function abrirPicker(o) {
+    var base = (window.altProductos || []).filter(function (p) { return p.disponible && precioDe(p, o.tamano) > 0; });
+    var vistos = {}, prods = [];
+    base.forEach(function (p) { var k = norm(p.nombre); if (!vistos[k]) { vistos[k] = 1; prods.push(p); } });
+    prods.sort(function (a, b) { return (a.marca + a.nombre).toLowerCase() < (b.marca + b.nombre).toLowerCase() ? -1 : 1; });
+    if (!prods.length) { (window.altToast || alert)('No pudimos cargar los perfumes en este momento. Intenta de nuevo o escríbenos por WhatsApp.'); return; }
+    P = { o: o, picks: [], prods: prods, filtro: '' };
+    $('comboEtiqueta').textContent = o.etiqueta || 'Oferta';
+    $('comboTitulo').textContent = o.titulo;
+    $('comboSub').textContent = 'Elige ' + o.cantidad + ' perfume' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + '. Puedes repetir el mismo.';
+    $('comboBuscar').value = '';
+    pintarPicker();
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('comboPanel').focus();
+  }
+  function cerrarPicker() { if (ov.hidden) return; ov.hidden = true; document.body.style.overflow = ''; }
+  function pintarPicker() {
+    var o = P.o, i;
+    var slots = $('comboSlots'); slots.textContent = '';
+    for (i = 0; i < o.cantidad; i++) {
+      var sl = el('span', 'combo-slot' + (P.picks[i] ? ' lleno' : ''));
+      if (P.picks[i]) {
+        sl.appendChild(document.createTextNode(P.picks[i]));
+        var x = el('button', '', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Quitar ' + P.picks[i]); x.setAttribute('data-i', i);
+        sl.appendChild(x);
+      } else sl.textContent = (i + 1) + ' · elige un perfume';
+      slots.appendChild(sl);
+    }
+    var cuenta = {}; P.picks.forEach(function (n) { cuenta[n] = (cuenta[n] || 0) + 1; });
+    var lista = $('comboLista'), top = lista.scrollTop; lista.textContent = '';
+    var f = norm(P.filtro), hubo = false;
+    P.prods.forEach(function (p) {
+      if (f && norm(p.marca + p.nombre).indexOf(f) < 0) return;
+      hubo = true;
+      var fila = el('button', 'combo-fila'); fila.type = 'button'; fila.setAttribute('data-n', p.nombre);
+      fila.appendChild(el('span', 'combo-marca', p.marca || ''));
+      fila.appendChild(el('span', 'combo-nombre', p.nombre));
+      fila.appendChild(el('span', 'combo-pp', 'Q' + precioDe(p, o.tamano)));
+      if (cuenta[p.nombre]) fila.appendChild(el('span', 'combo-cont', '×' + cuenta[p.nombre]));
+      lista.appendChild(fila);
+    });
+    if (!hubo) lista.appendChild(el('p', 'combo-vacio', 'No encontramos ese perfume entre los disponibles.'));
+    lista.scrollTop = top;
+    var suma = 0; P.picks.forEach(function (n) { var p = P.prods.filter(function (q) { return q.nombre === n; })[0]; if (p) suma += precioDe(p, o.tamano); });
+    $('comboPrecio').textContent = 'Q' + o.precioNum;
+    var ant = $('comboAntes'), ah = $('comboAhorro');
+    if (P.picks.length === o.cantidad && suma > o.precioNum) { ant.textContent = 'Q' + suma; ah.textContent = 'Ahorras Q' + (suma - o.precioNum); }
+    else { ant.textContent = ''; ah.textContent = P.picks.length < o.cantidad ? 'Faltan ' + (o.cantidad - P.picks.length) + ' por elegir' : ''; }
+    $('comboAgregar').disabled = P.picks.length !== o.cantidad;
+  }
+  if (ov) {
+    $('comboLista').addEventListener('click', function (e) {
+      var fila = e.target.closest && e.target.closest('.combo-fila'); if (!fila) return;
+      if (P.picks.length >= P.o.cantidad) { (window.altToast || function () {})('Ya elegiste ' + P.o.cantidad + '. Quita uno para cambiarlo.'); return; }
+      P.picks.push(fila.getAttribute('data-n')); pintarPicker();
+    });
+    $('comboSlots').addEventListener('click', function (e) {
+      var x = e.target.closest && e.target.closest('button[data-i]'); if (!x) return;
+      P.picks.splice(+x.getAttribute('data-i'), 1); pintarPicker();
+    });
+    $('comboBuscar').addEventListener('input', function (e) { P.filtro = e.target.value; pintarPicker(); });
+    $('comboCerrar').addEventListener('click', cerrarPicker);
+    ov.addEventListener('click', function (e) { if (e.target === ov) cerrarPicker(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarPicker(); });
+    $('comboAgregar').addEventListener('click', function () {
+      var o = P.o; if (!o || P.picks.length !== o.cantidad || !window.altAgregarOferta) return;
+      window.altAgregarOferta({ id: o.id, titulo: o.titulo, picks: P.picks.slice(), tamano: o.tamano, cantidad: o.cantidad, precio: o.precioNum, relampago: o.relampago });
+      cerrarPicker();
+    });
+  }
+
+  // ── Texto para Noor web (mismas reglas que el bot de WhatsApp: lib/ofertas.js → textoParaNoor) ──
+  function q$(n) { return 'Q' + (Math.round(n * 100) % 100 === 0 ? Math.round(n) : n.toFixed(2)); }
+  function legible(ms) {
+    var g = new Date(ms - 6 * 3600000), p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+    return g.getUTCDate() + ' ' + MESES[g.getUTCMonth()] + ' ' + p2(g.getUTCHours()) + ':' + p2(g.getUTCMinutes()) + ' (hora de Guatemala)';
+  }
+  function faltan(ms) {
+    var m = Math.max(0, Math.floor(ms / 60000));
+    if (m >= 2880) return Math.floor(m / 1440) + ' días';
+    if (m >= 120) return Math.floor(m / 60) + ' horas';
+    if (m >= 60) return '1 hora y ' + (m - 60) + ' min';
+    return m + ' min';
+  }
+  window.altOfertasNoor = function () {
+    var ahora = Date.now();
+    var vivas = ofertas.filter(function (o) { return o.fin === null || o.fin > ahora; });
+    if (!vivas.length) return '';
+    var lineas = vivas.map(function (o, i) {
+      var tipo = o.relampago ? 'RELÁMPAGO' : (o.etiqueta ? 'OFERTA: ' + o.etiqueta : 'OFERTA ESPECIAL');
+      var l = (i + 1) + ') [' + tipo + '] "' + o.titulo + '"';
+      if (o.tipo === 'combo') l += ' — combo de ' + o.cantidad + ' decant' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + ' a ' + q$(o.precioNum) + ' en total (se elige cualquier fragancia disponible)';
+      else if (o.precio) l += ' — precio ' + o.precio;
+      if (o.desc) l += '. ' + o.desc;
+      if (o.nota) l += ' Nota: ' + o.nota;
+      if (o.fin !== null) l += ' Termina: ' + legible(o.fin) + ', faltan ' + faltan(o.fin - ahora) + '.';
+      return l;
+    });
+    var hayRel = vivas.some(function (o) { return o.relampago; });
+    var ejemplos = [];
+    if (hayRel) ejemplos.push('"por cierto, ahora mismo tenemos una oferta relámpago ⚡"');
+    var otra = vivas.filter(function (o) { return !o.relampago; })[0];
+    if (otra) ejemplos.push(otra.etiqueta ? '"tenemos una oferta de ' + otra.etiqueta + '"' : '"tenemos una oferta especial"');
+    return ['', '', 'OFERTAS VIGENTES AHORA (datos reales de la tienda; todo lo que no esté aquí NO existe):'].concat(lineas, ['',
+      'CÓMO HABLAR DE LAS OFERTAS:',
+      '- Por defecto SOLO menciona que existe, sin precio ni detalles, en una frase corta y natural, por ejemplo ' + ejemplos.join(' o ') + ' (usa la etiqueta tal cual).',
+      '- Menciónala una sola vez por conversación, cuando venga al caso (saludo, preguntas por precios, dudas sobre qué comprar). No la repitas ni la fuerces.',
+      '- Si es RELÁMPAGO: habla con urgencia real y cálida (que dura poco, que conviene aprovecharla pronto). Nunca inventes escasez, cupos ni horas: usa solo el tiempo que figura arriba.',
+      '- Si NO es relámpago: tono tranquilo y sin presión.',
+      '- Si el cliente pregunta por la oferta o pide detalles, dalos EXACTOS como están arriba (qué incluye, tamaño, precio, hasta cuándo). No cambies precios ni condiciones.',
+      '- Dónde se aprovecha: en la sección "Ofertas Exclusivas" de esta misma página (se arma el combo y se paga con tarjeta, o se manda por WhatsApp).']).join('\n');
+  };
+
+  // ── Carga ──
+  function cargar() {
+    if (document.hidden || !window.ALT_SHEETS_ID) return;
+    var url = 'https://docs.google.com/spreadsheets/d/' + window.ALT_SHEETS_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(HOJA) + '&_=' + Math.floor(Date.now() / 60000);
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctl) ctl.abort(); }, 9000);
+    fetch(url, ctl ? { signal: ctl.signal } : {}).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(function (t) { clearTimeout(to); ofertas = procesar(t); pintar(); })
+      .catch(function () { clearTimeout(to); /* sin red o sin pestaña: se deja lo que ya había */ });
+  }
+  function arrancar() {
+    (window.requestIdleCallback || function (f) { return setTimeout(f, 800); })(function () { cargar(); setInterval(cargar, REFRESCO_MS); }, { timeout: 2500 });
+  }
+  if (document.readyState === 'complete') arrancar(); else window.addEventListener('load', arrancar);
 })();
 </script>
 </body>

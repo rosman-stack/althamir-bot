@@ -6,6 +6,7 @@
 // un perfume editando la petición (el código del sitio y del servidor es público).
 
 const https = require('https');
+const Ofertas = require('./ofertas');
 
 const SHEET_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
@@ -14,8 +15,13 @@ const TAMANOS_PERMITIDOS = ['5 ml', '10 ml']; // los que existen como columna de
 const MAX_LINEAS = 30;
 const MAX_CANTIDAD = 20;
 const CACHE_MS = 60 * 1000;
+const OFERTAS_HOJA = 'Ofertas';           // pestaña del mismo Sheet con las ofertas
+const OFERTAS_CACHE_MS = 30 * 1000;       // más corto que el inventario: las relámpago cambian rápido
+const MAX_COMBOS_POR_LINEA = 10;
 
 let cache = null; // { t, productos }
+let cacheOfertas = null; // { t, texto }
+let descargar = null; // se asigna abajo (permite sustituirla en pruebas)
 
 function normalizar(str) {
   return String(str || '').toLowerCase()
@@ -89,10 +95,21 @@ function descargarTexto(url, redirecciones = 5) {
 async function cargarInventario() {
   const ahora = Date.now();
   if (cache && ahora - cache.t < CACHE_MS) return cache.productos;
-  const productos = parsearCSV(await descargarTexto(`${CSV_URL}&_=${ahora}`));
+  const productos = parsearCSV(await descargar(`${CSV_URL}&_=${ahora}`));
   if (productos.length === 0) throw new Error('Inventario vacío');
   cache = { t: ahora, productos };
   return productos;
+}
+
+// Ofertas: se baja el texto de la pestaña y se evalúa la vigencia (Inicio/Fin) en CADA verificación,
+// así una oferta que termina no se puede pagar aunque el texto siga en caché.
+async function cargarOfertas() {
+  const ahora = Date.now();
+  if (!cacheOfertas || ahora - cacheOfertas.t >= OFERTAS_CACHE_MS) {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(OFERTAS_HOJA)}&_=${ahora}`;
+    cacheOfertas = { t: ahora, texto: await descargar(url) };
+  }
+  return Ofertas.procesarCSV(cacheOfertas.texto, Date.now());
 }
 
 // Coincidencia exacta; si no, parcial pero SOLO si es inequívoca (un único candidato).
@@ -127,7 +144,44 @@ async function verificarCarrito(cart) {
   }
 
   const items = [];
+  let ofertasVigentes = null; // se descargan solo si el carrito trae alguna oferta
   for (const linea of cart) {
+    // ── Oferta (combo): el navegador solo dice QUÉ oferta y QUÉ perfumes eligió; precio, cantidad de decants
+    //    y tamaño los pone el servidor desde la pestaña "Ofertas". Cualquier "price" que mande se ignora.
+    if (linea && linea.oferta !== undefined && linea.oferta !== null) {
+      const idOferta = typeof linea.oferta === 'string' ? linea.oferta.slice(0, 80) : '';
+      const qtyC = linea.qty;
+      if (!idOferta) return { ok: false, status: 400, error: 'Oferta inválida en el carrito' };
+      if (!Number.isInteger(qtyC) || qtyC < 1 || qtyC > MAX_COMBOS_POR_LINEA) return { ok: false, status: 400, error: 'Cantidad inválida en el carrito' };
+      if (!ofertasVigentes) {
+        try { ofertasVigentes = await cargarOfertas(); }
+        catch (e) {
+          console.error('[Precios] No se pudieron leer las ofertas:', e.message);
+          return { ok: false, status: 503, error: 'No pudimos verificar las ofertas en este momento. Intenta de nuevo en un minuto o haz tu pedido por WhatsApp.' };
+        }
+      }
+      const oferta = ofertasVigentes.find(o => o.id === idOferta);
+      if (!oferta || oferta.tipo !== 'combo') {
+        return { ok: false, status: 400, error: 'Una de las ofertas de tu carrito ya terminó o cambió. Quítala del carrito y revisa las ofertas vigentes.' };
+      }
+      const picks = Array.isArray(linea.picks) ? linea.picks : [];
+      if (picks.length !== oferta.cantidad || picks.some(x => typeof x !== 'string')) {
+        return { ok: false, status: 400, error: `La oferta "${oferta.titulo}" necesita exactamente ${oferta.cantidad} decant${oferta.cantidad > 1 ? 's' : ''}.` };
+      }
+      const elegidos = [];
+      for (const pick of picks) {
+        const { producto } = buscarProducto(productos, pick.slice(0, 200));
+        if (!producto) return { ok: false, status: 400, error: `No encontramos "${pick.slice(0, 60)}" para la oferta. Escríbenos por WhatsApp.` };
+        if (!producto.disponible) return { ok: false, status: 400, error: `"${producto.nombre}" está bajo pedido y no entra en la oferta. Elige otro perfume.` };
+        if (aPrecio(oferta.tamano === '5 ml' ? producto.ml5 : producto.ml10) === null) {
+          return { ok: false, status: 400, error: `"${producto.nombre}" no tiene presentación de ${oferta.tamano}. Elige otro perfume.` };
+        }
+        elegidos.push(producto.nombre);
+      }
+      items.push({ tipo: 'oferta', ofertaId: oferta.id, nombre: oferta.titulo, tamano: `${oferta.cantidad} × ${oferta.tamano}`, picks: elegidos, precio: oferta.precioNum, qty: qtyC });
+      continue;
+    }
+
     const nombre = typeof linea?.name === 'string' ? linea.name.slice(0, 200) : '';
     const tamano = typeof linea?.size === 'string' ? linea.size.trim().toLowerCase().replace(/\s+/g, ' ') : '';
     const qty = linea?.qty;
@@ -145,8 +199,16 @@ async function verificarCarrito(cart) {
   }
 
   const total = items.reduce((s, i) => s + i.precio * i.qty, 0);
-  const productosTexto = items.map(i => `${i.qty}x ${i.nombre} (${i.tamano})`).join(', ');
+  const productosTexto = items.map(i => i.tipo === 'oferta'
+    ? `${i.qty}x OFERTA "${i.nombre}" [${i.picks.join(' + ')}]`
+    : `${i.qty}x ${i.nombre} (${i.tamano})`).join(', ').slice(0, 1450); // el registro de pedidos acepta hasta 1500 caracteres
   return { ok: true, items, total, productosTexto };
 }
 
-module.exports = { verificarCarrito, parsearCSV, normalizar, _limpiarCache: () => { cache = null; } };
+descargar = (url) => descargarTexto(url);
+
+module.exports = {
+  verificarCarrito, parsearCSV, normalizar,
+  _limpiarCache: () => { cache = null; cacheOfertas = null; },
+  _setDescargar: (fn) => { descargar = fn; }   // solo para pruebas automáticas
+};

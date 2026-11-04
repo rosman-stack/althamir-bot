@@ -111,7 +111,7 @@ exports.handler = async (event) => {
   }
 
   const items = verificado.items.map(i => ({
-    name: `${i.nombre} (${i.tamano})`,
+    name: (i.tipo === 'oferta' ? `Oferta: ${i.nombre} (${i.picks.join(' + ')})` : `${i.nombre} (${i.tamano})`).slice(0, 180),
     amount_in_cents: Math.round(i.precio * 100),
     currency: 'GTQ',
     quantity: i.qty
