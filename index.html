@@ -1176,20 +1176,25 @@ function abrirMisPedidos() {
 
 async function buscarMisPedidos() {
   const tel = document.getElementById('pedidosTelInput').value.trim();
+  const orden = document.getElementById('pedidosOrdenInput').value.trim();
   const cont = document.getElementById('pedidosResultados');
   if (!tel || tel.replace(/\D/g, '').length < 8) {
     cont.innerHTML = '<p style="color:#c99;font-size:13px;">Escribe un teléfono válido</p>';
     return;
   }
+  if (!/^ALT-[A-Za-z0-9-]{4,24}$/.test(orden)) {
+    cont.innerHTML = '<p style="color:#c99;font-size:13px;">Escribe tu número de orden (empieza con ALT-). Está en el mensaje de tu pedido.</p>';
+    return;
+  }
   cont.innerHTML = '<p style="font-size:13px;opacity:0.7;">Buscando...</p>';
 
   try {
-    const res = await fetch(`https://althamir-bot.onrender.com/pedido/${encodeURIComponent(tel)}`);
+    const res = await fetch(`https://althamir-bot.onrender.com/pedido/${encodeURIComponent(tel)}?orden=${encodeURIComponent(orden)}`);
     const data = await res.json();
     const lista = data.pedidos || [];
 
     if (lista.length === 0) {
-      cont.innerHTML = '<p style="font-size:13px;opacity:0.7;">No encontramos pedidos con ese teléfono.</p>';
+      cont.innerHTML = '<p style="font-size:13px;opacity:0.7;">No encontramos pedidos con esos datos. Revisa el teléfono y el número de orden, o escríbenos por WhatsApp.</p>';
       return;
     }
 
@@ -1316,13 +1321,13 @@ function updateCartUI() {
     const div = document.createElement('div');
     div.className = 'cart-item';
     const imgHtml = item.img
-      ? `<img class="cart-item-img" src="${cldThumb(item.img, 160)}" alt="${item.name}"/>`
+      ? `<img class="cart-item-img" src="${escH(cldThumb(item.img, 160))}" alt="${escH(item.name)}"/>`
       : `<div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;font-size:24px;opacity:0.3">◈</div>`;
 
     const esOf = !!item.oferta;
-    const bH = esOf ? escH(item.brand) : item.brand;
-    const nH = esOf ? escH(item.name) : item.name;
-    const sH = esOf ? escH(item.size) + ' · ' + escH((item.picks || []).join(' + ')) : item.size;
+    const bH = escH(item.brand);
+    const nH = escH(item.name);
+    const sH = esOf ? escH(item.size) + ' · ' + escH((item.picks || []).join(' + ')) : escH(item.size);
     div.innerHTML = `
       ${imgHtml}
       <div class="cart-item-info">
@@ -1690,7 +1695,7 @@ function openModal(card) {
       imgs.forEach((src, i) => {
         const t = document.createElement('div');
         t.className = 'modal-thumb' + (i===0?' active':'');
-        t.innerHTML = `<img src="${cldThumb(src, 160)}" loading="lazy"/>`;
+        t.innerHTML = `<img src="${escH(cldThumb(src, 160))}" loading="lazy"/>`;
         t.addEventListener('click', () => {
           mainImg.style.opacity='0';
           setTimeout(()=>{mainImg.src=cldThumb(src, 1200);mainImg.style.opacity='1';},150);
@@ -2076,10 +2081,10 @@ function renderBestsellers() {
     const div = document.createElement('div');
     div.className = 'bs-card';
     div.innerHTML = `
-      <div class="bs-img"><img src="${cldThumb(imgs[0] || '', 500)}" alt="${bs.name}" loading="lazy"/></div>
+      <div class="bs-img"><img src="${escH(cldThumb(imgs[0] || '', 500))}" alt="${escH(bs.name)}" loading="lazy"/></div>
       <div class="bs-body">
-        <p class="bs-brand">${bs.brand}</p>
-        <p class="bs-name">${bs.name}</p>
+        <p class="bs-brand">${escH(bs.brand)}</p>
+        <p class="bs-name">${escH(bs.name)}</p>
       </div>
       <span class="bs-rank">${rank}</span>`;
     div.addEventListener('click', () => openModal(card));
@@ -2125,7 +2130,7 @@ function renderNuevosIngresos(productos) {
     const div = document.createElement('div');
     div.className = 'bs-card';
     div.innerHTML = `
-      <div class="bs-img${foto ? '' : ' bs-sinfoto'}">${foto ? `<img src="${foto}" alt="${(card.dataset.name || p.nombre).replace(/"/g, '')}" loading="lazy"/>` : '◈'}</div>
+      <div class="bs-img${foto ? '' : ' bs-sinfoto'}">${foto ? `<img src="${escH(foto)}" alt="${escH(card.dataset.name || p.nombre)}" loading="lazy"/>` : '◈'}</div>
       <div class="bs-body">
         <p class="bs-brand"></p>
         <p class="bs-name"></p>
@@ -2219,7 +2224,7 @@ function showOrderConfirm() {
   // Render resumen
   let html = '';
   cart.forEach(item => {
-    const etiq = item.oferta ? `${escH(item.name)} [${escH((item.picks || []).join(' + '))}] ×${item.qty}` : `${item.name} (${item.size}) ×${item.qty}`;
+    const etiq = item.oferta ? `${escH(item.name)} [${escH((item.picks || []).join(' + '))}] ×${item.qty}` : `${escH(item.name)} (${escH(item.size)}) ×${item.qty}`;
     html += `<div class="confirm-item"><span>${etiq}</span><span>Q ${(item.price*item.qty).toFixed(0)}</span></div>`;
   });
   html += `<div class="confirm-total"><span>Total</span><span>Q ${total.toFixed(0)}</span></div>`;
@@ -2406,11 +2411,11 @@ function crearTarjetaDesdeSheet(p, nuevoId) {
   const totalFotos = imagenes.length;
 
   wrapper.innerHTML = `
-    <div class="card-image">${imgSrc ? `<img src="${imgSrc}" alt="${p.nombre}" loading="lazy"/>` : `<div class="card-img-placeholder">◈</div>`}${totalFotos > 1 ? `<div class="img-count">${totalFotos}</div>` : ''}</div>
+    <div class="card-image">${imgSrc ? `<img src="${escH(imgSrc)}" alt="${escH(p.nombre)}" loading="lazy"/>` : `<div class="card-img-placeholder">◈</div>`}${totalFotos > 1 ? `<div class="img-count">${totalFotos}</div>` : ''}</div>
     <div class="card-body">
-      <p class="card-brand">${p.marca}</p>
-      <h3 class="card-name">${p.nombre}</h3>
-      <p class="card-desc">${p.descripcion || ''}</p>
+      <p class="card-brand">${escH(p.marca)}</p>
+      <h3 class="card-name">${escH(p.nombre)}</h3>
+      <p class="card-desc">${escH(p.descripcion || '')}</p>
       <div class="card-pricing">
         <div class="price-row"><span class="price-label">5 ml</span><span class="price-value">Q ${p.ml5 || '--'}</span></div>
         <div class="price-row"><span class="price-label">10 ml</span><span class="price-value">Q ${p.ml10 || '--'}</span></div>
@@ -2438,7 +2443,7 @@ function obtenerOCrearBrandGrid(marca) {
   const nuevaSeccion = document.createElement('div');
   nuevaSeccion.className = 'brand-section';
   nuevaSeccion.innerHTML = `
-    <div class="brand-divider"><div class="bdline"></div><span class="bdlabel">✦ ${marca} ✦</span><div class="bdline r"></div></div>
+    <div class="brand-divider"><div class="bdline"></div><span class="bdlabel">✦ ${escH(marca)} ✦</span><div class="bdline r"></div></div>
     <div class="brand-grid"></div>
   `;
   grid.appendChild(nuevaSeccion);
@@ -2781,7 +2786,7 @@ function noorAddMsg(role, text) {
   const msgs = document.getElementById('noorMessages');
   const div = document.createElement('div');
   div.className = 'noor-msg ' + role;
-  const noorBubbleText = text.replace(/\n/g,'<br>');
+  const noorBubbleText = escH(text).replace(/\n/g,'<br>'); // el texto (del usuario o de la IA) nunca se interpreta como HTML
   div.innerHTML = `<div class="noor-bubble">${noorBubbleText}</div><div class="noor-time">${noorTime()}</div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
@@ -3013,8 +3018,9 @@ async function noorSend() {
   <div class="confirm-box">
     <div class="confirm-icon">📦</div>
     <h3 class="confirm-title">Mis Pedidos</h3>
-    <p class="confirm-sub">Escribe el teléfono con el que hiciste tu pedido</p>
+    <p class="confirm-sub">Escribe tu teléfono y el número de orden que te enviamos (ej. ALT-251104-A1B2C3)</p>
     <input class="cart-input" id="pedidosTelInput" type="tel" placeholder="Tu número de teléfono" style="margin-bottom:10px;"/>
+    <input class="cart-input" id="pedidosOrdenInput" type="text" placeholder="Número de orden (ALT-...)" autocapitalize="characters" autocomplete="off" style="margin-bottom:10px;"/>
     <button class="confirm-btn-wa" id="pedidosBuscarBtn" onclick="buscarMisPedidos()">Buscar</button>
     <div id="pedidosResultados" style="margin-top:14px;max-height:320px;overflow-y:auto;"></div>
     <button class="confirm-btn-cancel" onclick="document.getElementById('pedidosOverlay').classList.remove('open')">Cerrar</button>

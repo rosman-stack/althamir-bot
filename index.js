@@ -61,14 +61,20 @@ function limitar(max, ventanaMs = 60 * 1000) {
 }
 
 // Middleware simple para proteger rutas de administración con un token.
-// Uso: agregar ?token=TU_ADMIN_TOKEN a la URL, o header 'x-admin-token'.
+// Uso recomendado: header 'x-admin-token'. El ?token= en la URL queda en los logs de Render,
+// así que se puede bloquear con ADMIN_TOKEN_SOLO_HEADER=true (mientras no lo pongas, sigue
+// funcionando pero deja un aviso en el log cada vez que se usa).
+const ADMIN_TOKEN_SOLO_HEADER = process.env.ADMIN_TOKEN_SOLO_HEADER === 'true';
 function requireAdminToken(req, res, next) {
   if (!ADMIN_TOKEN) {
     console.warn('[Seguridad] ADMIN_TOKEN no configurado — ruta de admin sin protección');
     return res.status(500).json({ error: 'ADMIN_TOKEN no configurado en el servidor' });
   }
-  const token = req.query.token || req.headers['x-admin-token'];
-  if (token !== ADMIN_TOKEN) {
+  const deHeader = req.headers['x-admin-token'];
+  const deUrl = ADMIN_TOKEN_SOLO_HEADER ? undefined : req.query.token;
+  if (deUrl) console.warn(`[Seguridad] Token de admin recibido por URL en ${req.path}: usa el header x-admin-token y activa ADMIN_TOKEN_SOLO_HEADER=true`);
+  const token = deHeader || deUrl;
+  if (!compararSeguro(token, ADMIN_TOKEN)) {
     console.warn(`[Seguridad] Intento de acceso no autorizado a ${req.path} desde IP ${req.ip}`);
     return res.status(401).json({ error: 'No autorizado' });
   }
@@ -607,7 +613,7 @@ app.post('/telegram-webhook', async (req, res) => {
     // para asegurarnos que la petición viene realmente de Telegram.
     if (TELEGRAM_WEBHOOK_SECRET) {
       const secretRecibido = req.headers['x-telegram-bot-api-secret-token'];
-      if (secretRecibido !== TELEGRAM_WEBHOOK_SECRET) {
+      if (!compararSeguro(secretRecibido, TELEGRAM_WEBHOOK_SECRET)) {
         console.warn('[Telegram] Webhook con secret inválido — descartado');
         return;
       }
@@ -752,11 +758,14 @@ app.post('/pedido', (req, res, next) => (esLlamadaInterna(req) ? next() : conLim
   }
 });
 
-// Consulta pública del cliente por teléfono — sin login, solo ve sus propios pedidos
+// Consulta pública del cliente — sin login, pero hay que acertar teléfono Y número de orden
+// (así saber el teléfono de alguien no basta para ver sus pedidos). Si el par no coincide,
+// la respuesta es idéntica a "no hay pedidos": no se revela si el teléfono existe.
 app.get('/pedido/:telefono', conLimite(limitePedidosConsultar), async (req, res) => {
   conCORS(res);
   try {
-    const resultados = await pedidos.buscarPorTelefono(req.params.telefono);
+    const orden = typeof req.query.orden === 'string' ? req.query.orden : '';
+    const resultados = await pedidos.buscarPorTelefono(req.params.telefono, orden);
     res.json({ pedidos: resultados });
   } catch (error) {
     console.error('[Pedido] Error buscando por teléfono:', error.message);
@@ -766,8 +775,7 @@ app.get('/pedido/:telefono', conLimite(limitePedidosConsultar), async (req, res)
 
 // Confirmación de pago — SOLO la llama el webhook de Recurrente (Netlify), nunca el navegador
 app.post('/pedido/confirmar-pago', async (req, res) => {
-  const secretRecibido = req.headers['x-internal-secret'];
-  if (!INTERNAL_API_SECRET || secretRecibido !== INTERNAL_API_SECRET) {
+  if (!esLlamadaInterna(req)) {
     console.warn('[Pedido] Intento de confirmar pago sin secret interno válido');
     return res.status(401).json({ error: 'No autorizado' });
   }

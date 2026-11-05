@@ -96,27 +96,37 @@ async function actualizarEstadoPedido(orderId, { estado, guia } = {}) {
 }
 
 // Usado por la página "Buscar mi pedido" — solo devuelve los pedidos de ESE teléfono
-async function buscarPorTelefono(telefono) {
-  const sheets = await getSheetsWriteClient();
-  const filas = await _leerTodasLasFilas(sheets);
-  if (filas.length < 2) return [];
-
+// Filtra las filas del Sheet: solo devuelve pedidos si el teléfono Y el número de orden
+// corresponden a la misma persona; entonces muestra todo su historial. Si no, [].
+function filtrarPedidosPorTelefonoYOrden(filas, telefono, orden) {
+  if (!filas || filas.length < 2) return [];
   const limpio = (telefono || '').replace(/\D/g, '');
   if (limpio.length < 8) return []; // evita búsquedas demasiado cortas/ambiguas
+  const ordenBuscada = String(orden || '').trim().toUpperCase();
+  if (!/^ALT-[A-Z0-9-]{4,24}$/.test(ordenBuscada)) return [];
 
   const resultados = [];
+  let ordenCoincide = false;
   for (let i = 1; i < filas.length; i++) {
     const f = filas[i];
     if (!f || !f[3]) continue;
     const filaTelefono = f[3].toString().replace(/\D/g, '');
     if (filaTelefono.length >= 8 && (filaTelefono.endsWith(limpio) || limpio.endsWith(filaTelefono))) {
+      if (String(f[0] || '').trim().toUpperCase() === ordenBuscada) ordenCoincide = true;
       resultados.push({
         orderId: f[0], fecha: f[1], productos: f[5], total: f[6],
         canal: f[7], estado: f[8] || 'Procesando', guia: f[9] || ''
       });
     }
   }
+  if (!ordenCoincide) return [];
   return resultados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+}
+
+async function buscarPorTelefono(telefono, orden) {
+  const sheets = await getSheetsWriteClient();
+  const filas = await _leerTodasLasFilas(sheets);
+  return filtrarPedidosPorTelefonoYOrden(filas, telefono, orden);
 }
 
 // Usado por el webhook de Recurrente para encontrar a qué pedido corresponde
@@ -360,4 +370,4 @@ function registrarAviso(clave, tipo) {
   });
 }
 
-module.exports = { listarPedidos, cargarAvisos, yaAvisado, registrarAviso, crearPedido, actualizarEstadoPedido, buscarPorTelefono, buscarPendienteParaConfirmar, generarOrderId, verificarConexion, cargarEsperasAsesor, guardarEsperaAsesor };
+module.exports = { listarPedidos, cargarAvisos, yaAvisado, registrarAviso, crearPedido, actualizarEstadoPedido, buscarPorTelefono, filtrarPedidosPorTelefonoYOrden, buscarPendienteParaConfirmar, generarOrderId, verificarConexion, cargarEsperasAsesor, guardarEsperaAsesor };
