@@ -2,7 +2,7 @@ const { google } = require('googleapis');
 const Ofertas = require('./netlify/functions/lib/ofertas'); // misma lógica que el checkout web (fechas, vigencia, texto para Noor)
 
 const SHEET_ID = '1f5c5QtzH4EmxKSaCsfhnhuVtPUfC_ko9gxYHe9JB7II';
-const SHEET_RANGE = 'A1:F200';
+const SHEET_RANGE = 'A1:Z200'; // hasta la Z: así se lee también la columna "Botella" (las de costo no se usan)
 
 let cacheCatalogo = null;
 let ultimaActualizacion = 0;
@@ -22,6 +22,19 @@ async function getSheetsClient() {
   });
   
   return google.sheets({ version: 'v4', auth });
+}
+
+// "420", "Q420", "Q 420.00" → "Q420". Vacío o texto ("Consultar") → "" (sin precio: lo cotiza un asesor).
+function formatearPrecioQ(valor) {
+  const n = parseFloat(String(valor == null ? '' : valor).replace(/[^0-9.]/g, ''));
+  if (!isFinite(n) || n <= 0) return '';
+  return 'Q' + (Number.isInteger(n) ? n : n.toFixed(2));
+}
+// "100" → "100 ml"; "100 ml" se deja igual
+function formatearTamano(valor) {
+  const t = String(valor == null ? '' : valor).trim();
+  if (!t) return '';
+  return /^\d+(\.\d+)?$/.test(t) ? t + ' ml' : t;
 }
 
 async function leerInventario() {
@@ -54,14 +67,19 @@ async function leerInventario() {
     const encabezados = filas[0].map(h => h.toLowerCase().trim());
     const idxMarca = encabezados.indexOf('marca');
     const idxNombre = encabezados.indexOf('nombre');
-    const idxMl5 = encabezados.findIndex(h => h.includes('5'));
-    const idxMl10 = encabezados.findIndex(h => h.includes('10'));
+    const idxMl5 = encabezados.findIndex(h => h.includes('5') && !/(botella|costo|sugerido)/.test(h));
+    const idxMl10 = encabezados.findIndex(h => h.includes('10') && !/(botella|costo|sugerido)/.test(h));
+    // Precio de venta de la botella completa: columna "Botella" (o "Precio botella"). Opcional: "ML botella" con el tamaño.
+    // OJO: las columnas de costo (costo_100ml, *_sugerido) nunca se leen para clientes.
+    const idxBotella = encabezados.findIndex(h => h.includes('botella') && !/(tam|ml)/.test(h));
+    const idxTamBotella = encabezados.findIndex(h => h.includes('botella') && /(tam|ml)/.test(h));
     const idxDisponible = encabezados.findIndex(h => 
       h.includes('disponible') || h.includes('activo') || h.includes('active')
     );
     const idxImgs = encabezados.findIndex(h => h.includes('img') || h.includes('foto') || h.includes('imagen') || h.includes('url'));
     
     const productos = [];
+    const bajoPedido = []; // perfumes con Disponible = No: se mencionan, pero no se pueden pedir
     for (let i = 1; i < filas.length; i++) {
       const fila = filas[i];
       if (!fila || fila.length === 0) continue;
@@ -72,7 +90,7 @@ async function leerInventario() {
       const disponible = (fila[idxDisponible] || '').toString().toLowerCase().trim();
       const estaActivo = ['si', 'sí', 'yes', 'true', '1', 'activo', 'active', '✓', '✔'].includes(disponible);
       
-      if (!estaActivo) continue;
+      if (!estaActivo) { bajoPedido.push({ marca: fila[idxMarca] || '', nombre }); continue; }
 
       const imagenes = (idxImgs !== -1 && fila[idxImgs]) 
   ? fila[idxImgs].split('|').map(url => url.trim()).filter(Boolean) 
@@ -83,9 +101,12 @@ async function leerInventario() {
   nombre,
   ml5: fila[idxMl5] || '',
   ml10: fila[idxMl10] || '',
+  botella: idxBotella !== -1 ? formatearPrecioQ(fila[idxBotella]) : '',
+  tamBotella: idxTamBotella !== -1 ? formatearTamano(fila[idxTamBotella]) : '',
   imagenes
 }); }
     
+    productos.bajoPedido = bajoPedido; // propiedad extra del arreglo: quienes solo recorren productos no se enteran
     cacheCatalogo = productos;
     ultimaActualizacion = ahora;
     console.log(`[Sheets] ✅ ${productos.length} productos activos cargados`);
@@ -155,11 +176,18 @@ function formatearCatalogo(productos) {
       if (p.ml5) linea += `(5ml ${p.ml5}`;
       if (p.ml10) linea += `· 10ml ${p.ml10})`;
       else if (p.ml5) linea += ')';
+      if (p.botella) linea += `[botella completa${p.tamBotella ? ' ' + p.tamBotella : ''} ${p.botella}]`;
       return linea;
     }).join(' · ');
     texto += '\n';
   }
-  
+
+  const sinStock = productos.bajoPedido || [];
+  if (sinStock.length) {
+    texto += '\nNO DISPONIBLES AHORA (los manejamos, pero no hay stock y NO se pueden pedir directo): ' +
+      sinStock.map(p => p.nombre + (p.marca ? ' (' + p.marca + ')' : '')).join(' · ') + '\n';
+  }
+
   return texto;
 }
 

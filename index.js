@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const { leerInventario, formatearCatalogo, textoOfertasParaNoor } = require('./sheets');
+const Botellas = require('./botellas'); // precio de botella completa desde el Sheet
 
 const app = express();
 app.set('trust proxy', 1); // Render va detrás de un proxy: así req.ip es la IP real de cada visitante
@@ -189,10 +190,11 @@ const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsA
 - Si te preguntan "¿cuánto cuestan los decants?" en general, responde con 2-3 ejemplos concretos del catálogo con su precio EXACTO, o pide el nombre de la fragancia que le interesa para dar el precio preciso.
 - Si una fragancia no está en el catálogo de abajo, NO inventes un precio — di que por ahora no la tenemos disponible como decant y ofrece que, si quiere que un asesor la consulte o la cotice, escriba la palabra *asesor*.
 
-⚠️ BOTELLAS COMPLETAS Y MAYOREO — SIEMPRE CON UN ASESOR:
-- El catálogo de abajo es SOLO de decants (5ml y 10ml). Las botellas completas NO aparecen en ese catálogo porque un asesor las cotiza una por una.
-- NUNCA digas que una botella "no está disponible" ni que "no hay" solo porque no la ves en el catálogo, y NUNCA inventes precios de botellas completas.
-- Si preguntan por botella completa, frasco, 50ml, 100ml, mayoreo o reventa: responde que con gusto se les cotiza y que un asesor los atenderá, e invítalos a escribir la palabra *asesor* para comunicarlos.
+⚠️ BOTELLAS COMPLETAS Y MAYOREO:
+- Si una fragancia del catálogo trae [botella completa ... Q...], ese es el precio de la BOTELLA COMPLETA: puedes darlo cuando pregunten por la botella de ESA fragancia, aclarando que es botella completa (con su tamaño si aparece) y que para comprarla escriban la palabra *asesor*.
+- Si la fragancia NO trae precio de botella, NUNCA lo inventes ni digas que "no hay": con gusto se les cotiza y un asesor los atenderá, invítalos a escribir la palabra *asesor*.
+- MAYOREO, reventa o compras corporativas: NUNCA des precios; SIEMPRE derívalos con un asesor (escribir la palabra *asesor*).
+- Si piden una fragancia de la lista "NO DISPONIBLES AHORA": di que la manejamos pero por ahora no hay stock, y que si quieren que un asesor consulte cuándo vuelve, escriban la palabra *asesor*. No ofrezcas pedirla directo.
 
 ⚠️ COSTOS DE ENVÍO — LEE CON CUIDADO, NO ES LO MISMO QUE EL PRECIO DE UN PERFUME:
 - El envío/entrega/delivery es un cargo APARTE del precio del decant. Cuando pregunten por "envío", "entrega", "delivery" o "cuánto cuesta que me lo lleven", responde con estos montos exactos — NUNCA con el precio de una fragancia:
@@ -278,8 +280,9 @@ function sinAcentos(t) { return String(t || '').toLowerCase().normalize('NFD').r
 // Si el mensaje habla de "decant", se deja que Noor responda con el catálogo.
 function tipoCotizacion(texto) {
   const t = sinAcentos(texto);
+  // Mayoreo / reventa / corporativo: SIEMPRE con asesor, incluso si hablan de decants
+  if (/\b(mayoreo|mayorista|mayoristas|por mayor|al por mayor|revender|reventa|distribuidor|distribuidores|corporativo|corporativos|corporativa|corporativas)\b/.test(t)) return 'mayoreo';
   if (/\bdecants?\b/.test(t)) return null;
-  if (/\b(mayoreo|mayorista|mayoristas|por mayor|al por mayor|revender|reventa)\b/.test(t)) return 'mayoreo';
   if (/\b(botella|botellas|frasco|frascos)\b/.test(t) || /\b(50|100)\s?ml\b/.test(t)) return 'botella';
   return null;
 }
@@ -512,6 +515,13 @@ async function procesarMensaje(mensaje) {
 
     const cotizacion = tipoCotizacion(texto);
     if (cotizacion && !esperandoAsesor.has(telefono)) {
+      // Botella de un perfume con precio en el Sheet: Noor la cotiza sola. Sin precio, sin stock, no
+      // identificado o más de 3 perfumes → asesor (igual que antes). El mayoreo nunca entra aquí.
+      if (cotizacion === 'botella') {
+        const inv = await leerInventario().catch(() => null);
+        const lista = inv ? Botellas.resolverBotella(texto, inv) : null;
+        if (lista) { await enviarMensaje(telefono, Botellas.mensajeBotella(lista)); return; }
+      }
       const aviso = cotizacion === 'mayoreo'
         ? `Con gusto te ayudamos con precios de mayoreo. Te comunico con un asesor. ${fraseAsesor()}`
         : `Con gusto te cotizamos la botella completa. Te comunico con un asesor. ${fraseAsesor()}`;

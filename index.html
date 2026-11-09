@@ -2460,7 +2460,8 @@ function crearProductosNuevosDesdeSheet(productos) {
   let siguienteId = Math.max(0, ...idsExistentes) + 1;
 
   productos.forEach(p => {
-    if (!p.disponible) return; // solo creamos tarjeta para productos activos
+    // También creamos tarjeta para los "No": se ven como "Bajo pedido" (sin compra directa y con botón de
+    // WhatsApp) para que se sepa que sí los hemos manejado. La compra la bloquea inicializarBotonesTarjeta().
     if (nombresExistentes.has(normalizarNombre(p.nombre))) return; // ya existe, no duplicar
 
     const nuevaCard = crearTarjetaDesdeSheet(p, siguienteId++);
@@ -2490,6 +2491,9 @@ function parsearCSV(texto) {
   const idxDisponible = encabezados.findIndex(h => h.includes('disponible') || h.includes('activo') || h.includes('active') || h === 'status');
   const idxImagen     = encabezados.findIndex(h => h === 'imagen' || h === 'foto' || h.includes('imagen') || h.includes('image') || h.includes('foto'));
   const idxDesc       = encabezados.findIndex(h => h === 'descripcion' || h === 'descripción' || h.includes('descripcion') || h.includes('description'));
+  // Precio de venta de la botella completa: columna "Botella" (opcional "ML botella" con el tamaño). Las columnas de costo no se leen.
+  const idxBotella    = encabezados.findIndex(h => h.includes('botella') && !/(tam|ml)/.test(h));
+  const idxTamBotella = encabezados.findIndex(h => h.includes('botella') && /(tam|ml)/.test(h));
 
   const productos = [];
   for (let i = 1; i < lineas.length; i++) {
@@ -2508,7 +2512,9 @@ function parsearCSV(texto) {
       disponible: estaActivo,
       imagen: imagenes[0] || '', // primera foto = miniatura principal (compatibilidad con lo existente)
       imagenes, // lista completa, para el carrusel
-      descripcion: (idxDesc >= 0 ? (cols[idxDesc] || '') : '').trim()
+      descripcion: (idxDesc >= 0 ? (cols[idxDesc] || '') : '').trim(),
+      botella: idxBotella >= 0 ? precioBotellaQ(cols[idxBotella]) : '',
+      tamBotella: idxTamBotella >= 0 ? tamanoBotella(cols[idxTamBotella]) : ''
     });
   }
   return productos;
@@ -2566,6 +2572,17 @@ function diagnosticarInventario(productos) {
   if (sinTarjeta.length) console.warn('[Sheets] Filas del Sheet SIN tarjeta en la página:', sinTarjeta);
 }
 
+// "420", "Q420", "Q 420.00" → "Q420". Vacío o texto ("Consultar") → "" (sin precio: lo cotiza un asesor).
+function precioBotellaQ(v) {
+  const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.]/g, ''));
+  if (!isFinite(n) || n <= 0) return '';
+  return 'Q' + (Number.isInteger(n) ? n : n.toFixed(2));
+}
+function tamanoBotella(v) {
+  const t = String(v == null ? '' : v).trim();
+  return /^\d+(\.\d+)?$/.test(t) ? t + ' ml' : t;
+}
+
 function generarTextoCatalogo(productos) {
   if (!productos.length) return null;
   const porMarca = {};
@@ -2582,6 +2599,7 @@ function generarTextoCatalogo(productos) {
       if (p.ml5)  l += ` (5ml ${p.ml5}`;
       if (p.ml10) l += ` · 10ml ${p.ml10})`;
       else if (p.ml5) l += ')';
+      if (p.botella) l += ` [botella completa${p.tamBotella ? ' ' + p.tamBotella : ''} ${p.botella}]`;
       return l;
     }).join(' · ');
     texto += '\n';
@@ -2750,7 +2768,9 @@ HERRAMIENTAS Y GUÍAS GRATIS (úsalas solo cuando ayuden al cliente: máximo UN 
 Reglas: usa SOLO los enlaces de esta lista, nunca inventes otros. Responde primero la duda del cliente y luego ofrece el enlace en una frase corta. Los precios y la disponibilidad se confirman siempre con el catálogo, nunca con las herramientas.
 
 REGLAS IMPORTANTES:
-- Para pedidos y consultas de botella completa siempre di: "Escríbenos al WhatsApp 👉 wa.me/50252547623 🖤"
+- Si una fragancia del catálogo trae [botella completa ... Q...], ese es el precio de la BOTELLA COMPLETA: puedes darlo cuando pregunten por la botella de esa fragancia, aclarando que es botella completa, y para comprarla di: "Escríbenos al WhatsApp 👉 wa.me/50252547623 🖤". Si no trae precio de botella, no lo inventes: di "Escríbenos al WhatsApp 👉 wa.me/50252547623 🖤" para cotizarla.
+- Mayoreo, reventa o compras corporativas: nunca des precios; siempre di: "Escríbenos al WhatsApp 👉 wa.me/50252547623 🖤"
+- Para pedidos siempre di: "Escríbenos al WhatsApp 👉 wa.me/50252547623 🖤"
 - Si no sabe qué fragancia elegir, pregunta: ¿prefieres floral, amaderado, cítrico o especiado? ¿uso diario u ocasión especial?
 - Respuestas máximo 4 líneas, elegantes y cálidas
 - Emojis con moderación: 🖤 ✨ 🌙 🕌 🌿
