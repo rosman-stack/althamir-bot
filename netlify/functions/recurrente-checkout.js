@@ -16,9 +16,9 @@ const RENDER_API_URL = 'althamir-bot.onrender.com';
 
 // Registra el pedido en el Sheet de Pedidos (vía el bot en Render, que es
 // quien tiene las credenciales de Google) ANTES de mandar al cliente a pagar.
-function crearPedidoEnRender({ cliente, telefono, direccion, productos, total, canal, estado }) {
+function crearPedidoEnRender({ cliente, telefono, direccion, productos, total, canal, estado, origen }) {
   return new Promise((resolve) => {
-    const payload = JSON.stringify({ cliente, telefono, direccion, productos, total, canal, estado });
+    const payload = JSON.stringify({ cliente, telefono, direccion, productos, total, canal, estado, origen });
     const req = https.request({
       hostname: RENDER_API_URL,
       path: '/pedido',
@@ -126,7 +126,8 @@ exports.handler = async (event) => {
     productos: productosTexto,
     total,
     canal: 'Tarjeta',
-    estado: 'Pendiente de pago'
+    estado: 'Pendiente de pago',
+    origen: texto(body.origen, 60) // de dónde llegó el cliente (tiktok, instagram...): solo informativo
   }) || ('ALT-' + Date.now().toString().slice(-5)); // respaldo si Render no respondió, para no romper el checkout
 
   const payload = JSON.stringify({

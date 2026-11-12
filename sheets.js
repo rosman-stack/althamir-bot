@@ -122,7 +122,7 @@ async function leerInventario() {
 // ─── Ofertas (pestaña "Ofertas" del mismo Sheet) ───
 // Se guarda la hoja cruda 60 s; la vigencia (Inicio/Fin) se evalúa en CADA consulta, así una oferta
 // que termina deja de mencionarse al instante aunque la hoja siga en caché.
-const OFERTAS_RANGE = "'Ofertas'!A1:O60";
+const OFERTAS_RANGE = "'Ofertas'!A1:Z60";
 const OFERTAS_TTL = 60 * 1000;
 let cacheOfertas = null; // { t, filas }
 

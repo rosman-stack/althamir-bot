@@ -22,7 +22,7 @@ const ESTADOS_INICIALES = ['Procesando', 'Pendiente de pago'];
 
 const PEDIDOS_SHEET_ID = '1Wpr9WlQaqe93_mdpAsGkzklN026NSzRySPkj4g0yyh4';
 const HOJA = 'Sheet1'; // Nombre real de la pestaña en el Sheet de Pedidos
-const RANGO = `'${HOJA}'!A:J`; // order_id, fecha, cliente, telefono, direccion, productos, total, canal, estado, guia
+const RANGO = `'${HOJA}'!A:K`; // order_id, fecha, cliente, telefono, direccion, productos, total, canal, estado, guia, origen
 
 async function getSheetsWriteClient() {
   const credencialesJSON = process.env.GOOGLE_CREDENTIALS_JSON;
@@ -46,7 +46,7 @@ async function _leerTodasLasFilas(sheets) {
   return res.data.values || [];
 }
 
-async function crearPedido({ cliente, telefono, direccion, productos, total, canal, estado }) {
+async function crearPedido({ cliente, telefono, direccion, productos, total, canal, estado, origen }) {
   const sheets = await getSheetsWriteClient();
   const orderId = generarOrderId();
   const fecha = new Date().toISOString();
@@ -56,7 +56,8 @@ async function crearPedido({ cliente, telefono, direccion, productos, total, can
     Number.isFinite(totalNum) ? totalNum : '',
     CANALES.includes(canal) ? canal : 'WhatsApp',
     ESTADOS_INICIALES.includes(estado) ? estado : 'Procesando',
-    ''
+    '',
+    celda(origen, 60) // columna K "Origen": de dónde llegó el cliente (tiktok, instagram...)
   ];
 
   await sheets.spreadsheets.values.append({
@@ -307,7 +308,7 @@ async function listarPedidos() {
       fila: i + 1, orderId: String(f[0]), fecha: Number.isFinite(fecha) ? fecha : null,
       cliente: String(f[2] || ''), telefono: String(f[3] || '').replace(/\D/g, ''),
       productos: String(f[5] || ''), total: parseFloat(String(f[6] || '').replace(/[^0-9.]/g, '')) || 0,
-      canal: String(f[7] || ''), estado: String(f[8] || '').trim(), guia: String(f[9] || '')
+      canal: String(f[7] || ''), estado: String(f[8] || '').trim(), guia: String(f[9] || ''), origen: String(f[10] || '')
     });
   }
   return lista;

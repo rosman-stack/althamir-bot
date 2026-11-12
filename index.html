@@ -1231,6 +1231,50 @@ const noorGreeting = () => "¡Hola! Soy Noor, tu asistente de Althamir. ¿En qu�
 let inventarioSheets = {};
 let catalogoSheets = null;
 
+// ═══ ORIGEN DEL CLIENTE (TikTok, Instagram, Facebook...) ═══
+// Se lee de los enlaces con ?utm_source=tiktok (y opcional &utm_content=video1) o, si no hay, de dónde vino la visita.
+// Se recuerda 14 días. Se agrega a los mensajes de WhatsApp y se guarda en cada pedido. Google Analytics lo mide aparte.
+const ALT_ORIGEN_KEY = 'alt_origen', ALT_ORIGEN_DIAS = 14;
+function altLimpiarOrigen(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9_.\-]/g, '').slice(0, 24); }
+function altOrigenGuardado() {
+  try {
+    const o = JSON.parse(localStorage.getItem(ALT_ORIGEN_KEY) || 'null');
+    return o && o.f && Date.now() - o.t <= ALT_ORIGEN_DIAS * 864e5 ? o : null;
+  } catch (_) { return null; }
+}
+(function altCapturarOrigen() {
+  try {
+    const p = new URLSearchParams(location.search);
+    let f = altLimpiarOrigen(p.get('utm_source') || p.get('ref') || p.get('fuente'));
+    const d = altLimpiarOrigen(p.get('utm_content') || p.get('utm_campaign') || p.get('v'));
+    if (!f && !altOrigenGuardado()) {   // sin enlace marcado: se deduce de dónde vino (los navegadores de TikTok/Instagram/Facebook suelen avisarlo)
+      const h = document.referrer ? new URL(document.referrer).hostname : '';
+      if (/(^|\.)tiktok\.com$/.test(h)) f = 'tiktok';
+      else if (/(^|\.)instagram\.com$/.test(h)) f = 'instagram';
+      else if (/(^|\.)facebook\.com$/.test(h)) f = 'facebook';
+    }
+    if (f) localStorage.setItem(ALT_ORIGEN_KEY, JSON.stringify({ f: f, d: d, t: Date.now() }));   // el más reciente gana
+  } catch (_) {}
+})();
+function altOrigenTexto() { const o = altOrigenGuardado(); return o ? o.f + (o.d ? ' · ' + o.d : '') : ''; }
+function altOrigenEtiqueta() {
+  const o = altOrigenGuardado(); if (!o) return '';
+  const n = { tiktok: 'TikTok', instagram: 'Instagram', facebook: 'Facebook' }[o.f] || (o.f.charAt(0).toUpperCase() + o.f.slice(1));
+  return n + (o.d ? ' · ' + o.d : '');
+}
+// Cualquier enlace a WhatsApp de la página lleva "(Vía TikTok)" al final del mensaje (solo si el cliente llegó con un origen)
+document.addEventListener('click', function (e) {
+  const a = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
+  const et = a && altOrigenEtiqueta();
+  if (!et) return;
+  try {
+    const u = new URL(a.href), t = u.searchParams.get('text');
+    if (t !== null && t.indexOf('(Vía ') !== -1) return;   // ya lo trae
+    u.searchParams.set('text', (t !== null ? t + '\n' : 'Hola 👋 ') + '(Vía ' + et + ')');
+    a.href = u.toString();
+  } catch (_) {}
+}, true);
+
 let cart = (function() {
   try { const s = localStorage.getItem('althamir_cart'); return s ? JSON.parse(s) : []; } catch(e) { return []; }
 })();
@@ -2180,7 +2224,8 @@ async function payWithCard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         cart: cart,
-        customer: { name, phone, address, note }
+        customer: { name, phone, address, note },
+        origen: altOrigenTexto()
       })
     });
 
@@ -2240,7 +2285,7 @@ function showOrderConfirm() {
   cart.forEach(item => { msg += `• ${textoItem(item)} x${item.qty} — Q ${(item.price*item.qty).toFixed(0)}\n`; });
   msg += `━━━━━━━━━━━━━━━━━━\n💰 *Total: Q ${total.toFixed(0)}*\n`;
   if (note) msg += `📝 *Nota:* ${note}\n`;
-  msg += `_Enviado desde althamirgt.com_`;
+  msg += `_Enviado desde althamirgt.com${altOrigenEtiqueta() ? ' (Vía ' + altOrigenEtiqueta() + ')' : ''}_`;
 
   const waUrl = 'https://wa.me/50252547623?text=' + encodeURIComponent(msg);
   const productosTexto = cart.map(item => `${item.qty}x ${textoItem(item)}`).join(', ').slice(0, 1450);
@@ -2250,7 +2295,7 @@ function showOrderConfirm() {
     e.preventDefault(); // registramos el pedido y navegamos nosotros mismos
     altTrack('whatsapp_order', { currency: 'GTQ', value: total, transaction_id: orderNum, items: altItemsCarrito() });
 
-    const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp' };
+    const datosPedido = { cliente: name, telefono: phone, direccion: address, productos: productosTexto, total, canal: 'WhatsApp', origen: altOrigenTexto() };
 
     // No esperamos la respuesta antes de navegar: si Render está dormido
     // (el free tier tarda 50+ segundos en despertar), esperar aquí abortaba
@@ -3749,7 +3794,8 @@ if ('serviceWorker' in navigator) {
     var ix = function () { for (var a = 0; a < arguments.length; a++) { var i = cab.indexOf(arguments[a]); if (i > -1) return i; } return -1; };
     var I = { act: ix('activa', 'activo'), tit: ix('titulo', 'oferta'), eti: ix('etiqueta'), des: ix('descripcion'), pre: ix('precio'),
       ant: ix('precioantes', 'antes'), ini: ix('inicio'), fin: ix('fin'), bot: ix('boton'), enl: ix('enlace'), est: ix('estilo'), not: ix('nota'),
-      tip: ix('tipo'), can: ix('cantidad'), tam: ix('tamano', 'tamanoml', 'size') };
+      tip: ix('tipo'), can: ix('cantidad'), tam: ix('tamano', 'tamanoml', 'size'),
+      per: ix('perfumes', 'incluye'), mar: ix('marcas'), max: ix('preciomax', 'maximo', 'tope'), exc: ix('excluye', 'excluir') };
     if (I.act < 0 || I.tit < 0) return [];                // protección: si Google devolviera otra hoja, no se muestra nada
     var ahora = Date.now(), res = [], usados = {};
     for (var r = 1; r < f.length; r++) {
@@ -3777,7 +3823,7 @@ if ('serviceWorker' in navigator) {
       if (norm(v(I.tip)) === 'combo') {
         var cant = parseInt(v(I.can), 10), tm = norm(v(I.tam)).replace(/ml$/, '');
         var tamano = tm === '5' ? '5 ml' : tm === '10' ? '10 ml' : null;
-        if (isFinite(cant) && cant >= 1 && cant <= 6 && tamano && precioNum !== null && precioNum <= 5000) { o.tipo = 'combo'; o.cantidad = cant; o.tamano = tamano; o.boton = v(I.bot) || 'Armar mi combo'; }
+        if (isFinite(cant) && cant >= 1 && cant <= 6 && tamano && precioNum !== null && precioNum <= 5000) { o.tipo = 'combo'; o.cantidad = cant; o.tamano = tamano; o.boton = v(I.bot) || 'Armar mi combo'; o.filtro = leerFiltro(v(I.per), v(I.mar), v(I.max), v(I.exc)); }
         else console.warn('[Ofertas] Combo mal configurado, se muestra como oferta informativa:', titulo);
       }
       res.push(o);
@@ -3795,6 +3841,35 @@ if ('serviceWorker' in navigator) {
     var msg = 'Hola Althamir 🖤, quiero la oferta: ' + o.titulo + (o.precio ? ' (' + o.precio + ')' : '') + '. ¿Me ayudas?';
     return { href: 'https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), externo: true };
   }
+  // ── Qué perfumes entran en un combo (columnas opcionales Marcas | Perfumes | PrecioMax | Excluye; misma regla que lib/ofertas.js,
+  //    que además la vuelve a comprobar en el servidor al pagar) ──
+  function lista(txt) { return String(txt == null ? '' : txt).split(/[|;,\n]+/).map(function (s) { return s.trim(); }).filter(Boolean); }
+  function leerFiltro(per, mar, max, exc) {
+    var m = parseFloat(String(max == null ? '' : max).replace(/[^0-9.]/g, ''));
+    var f = { perfumes: lista(per), marcas: lista(mar), precioMax: isFinite(m) && m > 0 ? m : null, excluye: lista(exc) };
+    return (f.perfumes.length || f.marcas.length || f.precioMax !== null || f.excluye.length) ? f : null;
+  }
+  function elegibleOferta(o, p, precio) {
+    var f = o && o.filtro; if (!f) return true;
+    var n = norm(p.nombre), m = norm(p.marca);
+    if (f.excluye.some(function (x) { return norm(x) === n; })) return false;
+    if (f.precioMax !== null && !(precio <= f.precioMax)) return false;
+    if (f.perfumes.length || f.marcas.length) {
+      var entra = f.perfumes.some(function (x) { return norm(x) === n; }) || (m !== '' && f.marcas.some(function (x) { return norm(x) === m; }));
+      if (!entra) return false;
+    }
+    return true;
+  }
+  // Frase para la tarjeta y el selector ('' si entra cualquiera). completo = lista todos los perfumes (para Noor)
+  function condicion(o, completo) {
+    var f = o.filtro; if (!f) return '';
+    var inc = [];
+    if (f.marcas.length) inc.push('perfumes de ' + f.marcas.join(', '));
+    if (f.perfumes.length) inc.push(completo || f.perfumes.length <= 6 ? f.perfumes.join(', ') : 'perfumes seleccionados');
+    var t = inc.join(' y ');
+    if (f.precioMax !== null) t = t ? t + ' (hasta ' + q$(f.precioMax) + ' el decant)' : 'perfumes con decant de hasta ' + q$(f.precioMax);
+    return t;
+  }
   function pintar() {
     grid.textContent = '';
     ofertas.forEach(function (o) {
@@ -3808,7 +3883,7 @@ if ('serviceWorker' in navigator) {
         if (o.antes) pr.appendChild(el('del', '', o.antes));
         a.appendChild(pr);
       }
-      if (o.tipo === 'combo') a.appendChild(el('p', 'oferta-incluye', o.cantidad + ' × ' + o.tamano + ' · tú eliges los perfumes'));
+      if (o.tipo === 'combo') { var cond = condicion(o); a.appendChild(el('p', 'oferta-incluye', o.cantidad + ' × ' + o.tamano + ' · tú eliges ' + (cond ? 'entre ' + cond : 'los perfumes'))); }
       if (o.fin !== null) {
         var resto = o.fin - Date.now();
         var cu = el('p', 'oferta-cuenta');
@@ -3863,15 +3938,20 @@ if ('serviceWorker' in navigator) {
   function $(id) { return document.getElementById(id); }
   function precioDe(p, tam) { var n = parseFloat(String(tam === '5 ml' ? p.ml5 : p.ml10).replace(/[^0-9.]/g, '')); return isFinite(n) && n > 0 ? n : 0; }
   function abrirPicker(o) {
-    var base = (window.altProductos || []).filter(function (p) { return p.disponible && precioDe(p, o.tamano) > 0; });
+    var baseTodos = (window.altProductos || []).filter(function (p) { return p.disponible && precioDe(p, o.tamano) > 0; });
+    var base = baseTodos.filter(function (p) { return elegibleOferta(o, p, precioDe(p, o.tamano)); });
+    if (o.filtro) {   // ayuda para detectar errores de escritura en el Sheet (se ven en la consola del navegador)
+      o.filtro.perfumes.concat(o.filtro.excluye).forEach(function (nm) { if (!(window.altProductos || []).some(function (p) { return norm(p.nombre) === norm(nm); })) console.warn('[Ofertas] «' + o.titulo + '»: no encuentro el perfume «' + nm + '» en el inventario (revisa cómo está escrito).'); });
+      o.filtro.marcas.forEach(function (mc) { if (!(window.altProductos || []).some(function (p) { return norm(p.marca) === norm(mc); })) console.warn('[Ofertas] «' + o.titulo + '»: no encuentro la marca «' + mc + '» en el inventario.'); });
+    }
     var vistos = {}, prods = [];
     base.forEach(function (p) { var k = norm(p.nombre); if (!vistos[k]) { vistos[k] = 1; prods.push(p); } });
     prods.sort(function (a, b) { return (a.marca + a.nombre).toLowerCase() < (b.marca + b.nombre).toLowerCase() ? -1 : 1; });
-    if (!prods.length) { (window.altToast || alert)('No pudimos cargar los perfumes en este momento. Intenta de nuevo o escríbenos por WhatsApp.'); return; }
+    if (!prods.length) { (window.altToast || alert)(baseTodos.length ? 'Por ahora no hay perfumes disponibles para esta oferta. Escríbenos por WhatsApp y te ayudamos.' : 'No pudimos cargar los perfumes en este momento. Intenta de nuevo o escríbenos por WhatsApp.'); return; }
     P = { o: o, picks: [], prods: prods, filtro: '' };
     $('comboEtiqueta').textContent = o.etiqueta || 'Oferta';
     $('comboTitulo').textContent = o.titulo;
-    $('comboSub').textContent = 'Elige ' + o.cantidad + ' perfume' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + '. Puedes repetir el mismo.';
+    $('comboSub').textContent = 'Elige ' + o.cantidad + ' perfume' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + '. Puedes repetir el mismo.' + (condicion(o) ? ' Aplica a ' + condicion(o) + '.' : '');
     $('comboBuscar').value = '';
     pintarPicker();
     ov.hidden = false;
@@ -3954,7 +4034,7 @@ if ('serviceWorker' in navigator) {
     var lineas = vivas.map(function (o, i) {
       var tipo = o.relampago ? 'RELÁMPAGO' : (o.etiqueta ? 'OFERTA: ' + o.etiqueta : 'OFERTA ESPECIAL');
       var l = (i + 1) + ') [' + tipo + '] "' + o.titulo + '"';
-      if (o.tipo === 'combo') l += ' — combo de ' + o.cantidad + ' decant' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + ' a ' + q$(o.precioNum) + ' en total (se elige cualquier fragancia disponible)';
+      if (o.tipo === 'combo') l += ' — combo de ' + o.cantidad + ' decant' + (o.cantidad > 1 ? 's' : '') + ' de ' + o.tamano + ' a ' + q$(o.precioNum) + ' en total (' + (condicion(o, true) ? 'entran SOLO ' + condicion(o, true) : 'se elige cualquier fragancia disponible') + (o.filtro && o.filtro.excluye.length ? '; NO entran: ' + o.filtro.excluye.join(', ') : '') + ')';
       else if (o.precio) l += ' — precio ' + o.precio;
       if (o.desc) l += '. ' + o.desc;
       if (o.nota) l += ' Nota: ' + o.nota;

@@ -50,6 +50,7 @@ function parsearCSV(texto) {
   if (lineas.length < 2) return [];
   const enc = parsearLineaCSV(lineas[0]).map(h => h.replace(/"/g, '').toLowerCase().trim());
   const idxNombre = enc.findIndex(h => h === 'nombre' || h.includes('nombre') || h.includes('name'));
+  const idxMarca = enc.findIndex(h => h === 'marca');
   const idx5 = enc.findIndex(h => h === '5ml' || h === '5' || h === 'precio5ml' || h === 'precio 5ml' || h === '5 ml' || (h.includes('5') && h.includes('ml')));
   const idx10 = enc.findIndex(h => h === '10ml' || h === '10' || h === 'precio10ml' || h === 'precio 10ml' || h === '10 ml' || (h.includes('10') && h.includes('ml')));
   const idxDisp = enc.findIndex(h => h.includes('disponible') || h.includes('activo') || h.includes('active') || h === 'status');
@@ -62,6 +63,7 @@ function parsearCSV(texto) {
     const disp = (cols[idxDisp] || '').toLowerCase();
     productos.push({
       nombre,
+      marca: idxMarca >= 0 ? (cols[idxMarca] || '') : '',
       clave: normalizar(nombre),
       ml5: cols[idx5] || '',
       ml10: cols[idx10] || '',
@@ -173,8 +175,12 @@ async function verificarCarrito(cart) {
         const { producto } = buscarProducto(productos, pick.slice(0, 200));
         if (!producto) return { ok: false, status: 400, error: `No encontramos "${pick.slice(0, 60)}" para la oferta. Escríbenos por WhatsApp.` };
         if (!producto.disponible) return { ok: false, status: 400, error: `"${producto.nombre}" está bajo pedido y no entra en la oferta. Elige otro perfume.` };
-        if (aPrecio(oferta.tamano === '5 ml' ? producto.ml5 : producto.ml10) === null) {
+        const precioPick = aPrecio(oferta.tamano === '5 ml' ? producto.ml5 : producto.ml10);
+        if (precioPick === null) {
           return { ok: false, status: 400, error: `"${producto.nombre}" no tiene presentación de ${oferta.tamano}. Elige otro perfume.` };
+        }
+        if (!Ofertas.elegible(oferta, producto, precioPick)) {
+          return { ok: false, status: 400, error: `"${producto.nombre}" no entra en la oferta "${oferta.titulo}". Elige otro perfume de los que aplican.` };
         }
         elegidos.push(producto.nombre);
       }

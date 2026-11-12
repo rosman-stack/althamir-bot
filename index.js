@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const { leerInventario, formatearCatalogo, textoOfertasParaNoor } = require('./sheets');
 const Botellas = require('./botellas'); // precio de botella completa desde el Sheet
+const Origenes = require('./origenes'); // de dónde vienen los pedidos (resumen de las 9 am)
 
 const app = express();
 app.set('trust proxy', 1); // Render va detrás de un proxy: así req.ip es la IP real de cada visitante
@@ -745,7 +746,9 @@ app.post('/pedido', (req, res, next) => (esLlamadaInterna(req) ? next() : conLim
     if (!telefonoOk || !productosOk || !totalOk || !largoOk(cliente, 120) || !largoOk(direccion, 400)) {
       return res.status(400).json({ error: 'Datos del pedido inválidos (teléfono, productos, total)' });
     }
-    const orderId = await pedidos.crearPedido({ cliente, telefono, direccion, productos, total, canal, estado });
+    // Origen del cliente (tiktok, instagram...): solo informativo, se limpia y se recorta
+    const origen = typeof cuerpo.origen === 'string' ? cuerpo.origen.replace(/[^a-zA-Z0-9 ._·\-]/g, '').trim().slice(0, 60) : '';
+    const orderId = await pedidos.crearPedido({ cliente, telefono, direccion, productos, total, canal, estado, origen });
 
     const icono = canal === 'Tarjeta' ? '💳' : '💵';
     const estadoInicial = estado || (canal === 'Tarjeta' ? 'Pendiente de pago' : 'Procesando');
@@ -757,6 +760,7 @@ app.post('/pedido', (req, res, next) => (esLlamadaInterna(req) ? next() : conLim
       `📍 Dirección: ${direccion || 'No especificada'}\n` +
       `🧴 Productos: ${productos}\n` +
       `💰 Total: Q${total}\n` +
+      (origen ? `🔗 Origen: ${origen}\n` : '') +
       `📌 Estado: ${estadoInicial}`,
       telefono
     );
@@ -943,6 +947,7 @@ function clasificarPedidos(lista, ahora) {
     }
   }
   for (const k of ['pendientes', 'porDespachar', 'enviadosViejos', 'resenas', 'recompras']) c[k].sort((a, b) => a.fecha - b.fecha);
+  c.origenes = Origenes.resumir(lista, ahora);
   return c;
 }
 
@@ -972,6 +977,7 @@ function construirResumen(c, ahora) {
     a.push(lista(c.enviadosViejos, 4, p => `   • ${p.orderId} · ${nombrePila(p.cliente) || 'cliente'} · guía ${p.guia || 's/g'}`));
   }
   a.push('', `📈 Ayer: ${c.ayer.creados ? `${c.ayer.creados} pedido(s) · ${dineroQ(c.ayer.total)} · ${c.ayer.pagados} pagado(s) o enviado(s)` : 'sin pedidos nuevos'}`);
+  if (c.origenes && c.origenes.length) a.push('', ...c.origenes);
   const partes = [a.join('\n')];
   const K = AVISOS_CFG.maxEnlaces, b = [];
   if (c.resenas.length) {

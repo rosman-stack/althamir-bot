@@ -7,6 +7,9 @@
 //
 // Columnas de la pestaña (el orden no importa, solo los nombres):
 //   Activa | Titulo | Etiqueta | Descripcion | Precio | PrecioAntes | Inicio | Fin | Boton | Enlace | Estilo | Nota | Tipo | Cantidad | Tamano
+// Solo para combos, opcionales (vacías = entra cualquier perfume disponible): qué perfumes entran en la promoción
+//   Marcas (marcas completas, separadas con |) | Perfumes (nombres exactos, con |) | PrecioMax (tope del precio normal de CADA decant) | Excluye (nombres con |)
+//   Entra un perfume si: está en Perfumes O su marca está en Marcas (si alguna de las dos tiene datos), cuesta ≤ PrecioMax y no está en Excluye.
 //
 // Tipo = combo  → se compra en el carrito: `Cantidad` decants de `Tamano` (5 o 10) por `Precio` TOTAL.
 // Cualquier otro Tipo (o vacío) → oferta informativa (botón a WhatsApp / enlace), sin carrito.
@@ -65,6 +68,27 @@ function numero(v) {
 
 const esSi = (v) => ['si', 'yes', 'true', '1'].includes(normalizar(v));
 
+// ───────── Qué perfumes entran en un combo ─────────
+function lista(txt) { return String(txt == null ? '' : txt).split(/[|;,\n]+/).map(s => s.trim()).filter(Boolean); }
+// null = sin restricciones (entra cualquier perfume disponible con precio de ese tamaño)
+function leerFiltro(perfumes, marcas, precioMax, excluye) {
+  const f = { perfumes: lista(perfumes), marcas: lista(marcas), precioMax: numero(precioMax), excluye: lista(excluye) };
+  return (f.perfumes.length || f.marcas.length || f.precioMax !== null || f.excluye.length) ? f : null;
+}
+// producto: { nombre, marca }; precio: lo que cuesta SU decant normal del tamaño del combo
+function elegible(oferta, producto, precio) {
+  const f = oferta && oferta.filtro;
+  if (!f) return true;
+  const n = normalizar(producto && producto.nombre), m = normalizar(producto && producto.marca);
+  if (f.excluye.some(x => normalizar(x) === n)) return false;
+  if (f.precioMax !== null && !(precio <= f.precioMax)) return false;
+  if (f.perfumes.length || f.marcas.length) {
+    const entra = f.perfumes.some(x => normalizar(x) === n) || (m !== '' && f.marcas.some(x => normalizar(x) === m));
+    if (!entra) return false;
+  }
+  return true;
+}
+
 /**
  * filas: arreglo de arreglos (la primera fila son los encabezados).
  * Devuelve las ofertas ACTIVAS y VIGENTES (dentro de Inicio/Fin) en el orden del Sheet.
@@ -78,7 +102,8 @@ function procesarFilas(filas, ahora) {
   const I = {
     act: ix('activa', 'activo'), tit: ix('titulo', 'oferta'), eti: ix('etiqueta'), des: ix('descripcion'),
     pre: ix('precio'), ant: ix('precioantes', 'antes'), ini: ix('inicio'), fin: ix('fin'), bot: ix('boton'),
-    enl: ix('enlace'), est: ix('estilo'), not: ix('nota'), tip: ix('tipo'), can: ix('cantidad'), tam: ix('tamano', 'tamanoml', 'size')
+    enl: ix('enlace'), est: ix('estilo'), not: ix('nota'), tip: ix('tipo'), can: ix('cantidad'), tam: ix('tamano', 'tamanoml', 'size'),
+    per: ix('perfumes', 'incluye'), mar: ix('marcas'), max: ix('preciomax', 'maximo', 'tope'), exc: ix('excluye', 'excluir')
   };
   if (I.act < 0 || I.tit < 0) return [];
 
@@ -112,7 +137,7 @@ function procesarFilas(filas, ahora) {
       const tamano = tam === '5' ? '5 ml' : tam === '10' ? '10 ml' : null;
       const ok = Number.isInteger(cantidad) && cantidad >= 1 && cantidad <= MAX_CANTIDAD_COMBO &&
         tamano && precioNum !== null && precioNum <= MAX_PRECIO_COMBO;
-      if (ok) { o.tipo = 'combo'; o.cantidad = cantidad; o.tamano = tamano; }
+      if (ok) { o.tipo = 'combo'; o.cantidad = cantidad; o.tamano = tamano; o.filtro = leerFiltro(v(I.per), v(I.mar), v(I.max), v(I.exc)); }
       else o.errorCombo = 'Combo mal configurado (revisa Cantidad 1-' + MAX_CANTIDAD_COMBO + ', Tamano 5 o 10 y un Precio numérico)';
     }
     res.push(o);
@@ -138,6 +163,19 @@ function faltan(ms) {
 }
 const q = (n) => 'Q' + (Math.round(n * 100) % 100 === 0 ? Math.round(n) : n.toFixed(2));
 
+// Frase para Noor: qué perfumes entran en el combo
+function descripcionFiltro(o) {
+  const f = o && o.filtro;
+  if (!f) return 'se elige cualquier fragancia disponible';
+  const inc = [];
+  if (f.marcas.length) inc.push('perfumes de ' + f.marcas.join(', '));
+  if (f.perfumes.length) inc.push(f.perfumes.join(', '));
+  let t = inc.length ? 'entran SOLO ' + inc.join(' y también ') : 'se elige entre las fragancias disponibles';
+  if (f.precioMax !== null) t += (inc.length ? ', ' : ' ') + 'que cuesten hasta ' + q(f.precioMax) + ' el decant' + (o.tamano ? ' de ' + o.tamano : '');
+  if (f.excluye.length) t += '; NO entran: ' + f.excluye.join(', ');
+  return t;
+}
+
 /**
  * Bloque de texto para el prompt de Noor. '' si no hay ofertas vigentes.
  * Instruye a Noor a SOLO anunciar el tipo de oferta (con urgencia si es relámpago) y a dar detalles únicamente si preguntan.
@@ -151,7 +189,7 @@ function textoParaNoor(ofertas, opciones) {
   const lineas = vivas.map((o, i) => {
     const tipo = o.relampago ? 'RELÁMPAGO' : (o.etiqueta ? 'OFERTA: ' + o.etiqueta : 'OFERTA ESPECIAL');
     let l = `${i + 1}) [${tipo}] "${o.titulo}"`;
-    if (o.tipo === 'combo') l += ` — combo de ${o.cantidad} decant${o.cantidad > 1 ? 's' : ''} de ${o.tamano} a ${q(o.precioNum)} en total (se elige cualquier fragancia disponible)`;
+    if (o.tipo === 'combo') l += ` — combo de ${o.cantidad} decant${o.cantidad > 1 ? 's' : ''} de ${o.tamano} a ${q(o.precioNum)} en total (${descripcionFiltro(o)})`;
     else if (o.precio) l += ` — precio ${/^\d/.test(o.precio) ? 'Q' + o.precio : o.precio}`;
     if (o.descripcion) l += `. ${o.descripcion}`;
     if (o.nota) l += ` Nota: ${o.nota}`;
@@ -181,6 +219,6 @@ function textoParaNoor(ofertas, opciones) {
 }
 
 module.exports = {
-  procesarFilas, procesarCSV, filasCSV, fechaGT, textoParaNoor, normalizar, numero,
+  procesarFilas, procesarCSV, filasCSV, fechaGT, textoParaNoor, normalizar, numero, elegible, leerFiltro, descripcionFiltro,
   MAX_CANTIDAD_COMBO, HORAS_GT
 };
