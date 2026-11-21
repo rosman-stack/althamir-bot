@@ -207,14 +207,14 @@ const NOOR_SYSTEM_BASE = `Eres Noor, la asistente virtual de ALTHAMIR por WhatsA
 - Si preguntan por el total de un pedido, SÍ puedes sumar producto + envío, pero acláralo como dos montos separados, no un solo precio fusionado.
 
 HERRAMIENTAS Y GUÍAS GRATIS (úsalas solo cuando ayuden al cliente: máximo UN enlace por respuesta, sin presionar y sin repetirlos si ya los enviaste):
-- Si no sabe qué perfume elegir o qué aroma le conviene: test de perfumes: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si pregunta cuánto rinde un perfume o cuánto cuesta cada spray o decant: https://herramientas.althamirgt.com/costo-por-spray/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si quiere combinar o mezclar perfumes (layering): https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si pregunta qué es un decant: https://herramientas.althamirgt.com/guias/que-es-un-decant/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si pregunta si un perfume es original: https://herramientas.althamirgt.com/guias/como-saber-si-un-perfume-es-original/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si pregunta cómo aplicar el perfume para que dure más: https://herramientas.althamirgt.com/guias/como-aplicar-perfume-para-que-dure-mas/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Si pregunta cómo guardar sus perfumes o decants: https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
-- Para otras dudas de perfumería (índice de guías): https://herramientas.althamirgt.com/guias/?utm_source=noor&utm_medium=whatsapp&utm_campaign=bot
+- Si no sabe qué perfume elegir o qué aroma le conviene: test de perfumes: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si pregunta cuánto rinde un perfume o cuánto cuesta cada spray o decant: https://herramientas.althamirgt.com/costo-por-spray/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si quiere combinar o mezclar perfumes (layering): https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si pregunta qué es un decant: https://herramientas.althamirgt.com/guias/que-es-un-decant/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si pregunta si un perfume es original o por la garantía: responde con calma que todos los perfumes son originales y se compran a proveedores locales e internacionales verificados previamente; que si se demuestra que un producto no es original se cambia por el mismo producto original (no se ofrecen reembolsos); que el plazo es de 15 días desde que lo reciben y deben enviar por aquí fotos del producto, la caja y los detalles del frasco (código de lote, atomizador, etiquetas), que se comparan con el registro de lo enviado; que en botellas completas el proceso de revisión se graba y pueden pedir un video corto; y que los decants se preparan del frasco original y no llevan código de lote. No inventes otras condiciones: para reclamos o casos puntuales invítalos a escribir la palabra *asesor*. Garantía: https://herramientas.althamirgt.com/garantia/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot — Guía para identificar originales: https://herramientas.althamirgt.com/guias/como-saber-si-un-perfume-es-original/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si pregunta cómo aplicar el perfume para que dure más: https://herramientas.althamirgt.com/guias/como-aplicar-perfume-para-que-dure-mas/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Si pregunta cómo guardar sus perfumes o decants: https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
+- Para otras dudas de perfumería (índice de guías): https://herramientas.althamirgt.com/guias/?utm_source=noor&utm_medium=referral&utm_term=whatsapp&utm_campaign=bot
 Reglas: usa SOLO los enlaces de esta lista, nunca inventes otros. Responde primero la duda del cliente y luego ofrece el enlace en una frase corta. Los precios y la disponibilidad se confirman siempre con el catálogo, nunca con las herramientas.
 
 {{CATALOGO}}
@@ -926,7 +926,7 @@ function msgResena(p) {
 }
 function msgRecompra(p) {
   const n = nombrePila(p.cliente), prod = productoPrincipal(p.productos);
-  return `Hola${n ? ' ' + n : ''} 😊 Han pasado unas semanas desde ${prod === 'tu pedido' ? 'tu pedido' : 'tu ' + prod}. ¿Cómo te fue? Si ya se te está acabando, puedo reservarte otro igual o recomendarte uno distinto para variar. Aquí te dejo el test para encontrar tu siguiente aroma: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=whatsapp&utm_medium=mensaje&utm_campaign=recompra`;
+  return `Hola${n ? ' ' + n : ''} 😊 Han pasado unas semanas desde ${prod === 'tu pedido' ? 'tu pedido' : 'tu ' + prod}. ¿Cómo te fue? Si ya se te está acabando, puedo reservarte otro igual o recomendarte uno distinto para variar. Aquí te dejo el test para encontrar tu siguiente aroma: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=whatsapp&utm_medium=referral&utm_term=mensaje&utm_campaign=recompra`;
 }
 
 // Agrupa los pedidos del Sheet según lo que hay que hacer con ellos

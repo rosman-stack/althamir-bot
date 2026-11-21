@@ -249,6 +249,30 @@
 @keyframes bannerSub{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.filter-btn.flip3d,.product-card.rise3d,.marca-banner .mb-nombre,.marca-banner .mb-sub{animation:none!important}}
 </style>
+<style id="modo-app-estilos">
+.tabbar-app,.app-instalar{display:none}
+html.modo-app{--tab-h:calc(62px + env(safe-area-inset-bottom,0px))}
+html.modo-app .tabbar-app{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:520;background:var(--bg2);border-top:1px solid var(--gold-border);padding:4px 2px env(safe-area-inset-bottom,0px)}
+.tabbar-app a,.tabbar-app button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;background:none;border:0;color:var(--text-muted);font:500 10px/1.1 'Jost',sans-serif;letter-spacing:.6px;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tabbar-app svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tabbar-app [data-activo="1"]{color:var(--gold)}
+.tabbar-app a:active,.tabbar-app button:active{color:var(--gold)}
+.tabbar-app [hidden]{display:none}
+html.modo-app body{padding-bottom:var(--tab-h)}
+html.modo-app .wa-float{display:none}
+html.modo-app .cart-fab{bottom:calc(20px + var(--tab-h))}
+html.modo-app .noor-fab,html.modo-app .noor-window{bottom:calc(84px + var(--tab-h))}
+html.modo-app .back-top,html.modo-app .toast{bottom:calc(92px + var(--tab-h))}
+html.modo-app #alt-ck{bottom:calc(10px + var(--tab-h))!important}
+.app-instalar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:560;max-width:560px;margin:0 auto;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.45);flex-direction:column;gap:10px}
+.app-instalar.on{display:flex}
+html.modo-app .app-instalar{display:none!important}
+.app-instalar p{margin:0;font-size:13px;line-height:1.5;color:var(--text-dim)}
+.app-instalar b{color:var(--gold);font-weight:500}
+.app-instalar-b{display:flex;gap:8px;justify-content:flex-end}
+.app-instalar button{min-height:40px;padding:8px 18px;font:500 11px 'Jost',sans-serif;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid var(--gold);background:transparent;color:var(--gold)}
+.app-instalar button.p{background:var(--gold);color:#060d08}
+</style>
 <style id="lenis-humo">
 html.lenis,html.lenis body{height:auto}
 .lenis.lenis-smooth{scroll-behavior:auto!important}
@@ -259,7 +283,36 @@ html.lenis,html.lenis body{height:auto}
 .hero-humo.on{opacity:1}
 body.light-mode .hero-humo.on{opacity:.35}
 </style>
+<style id="inicio-estilos">
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:8px;position:relative;z-index:2}
+.hero-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:14px 26px;font-family:'Jost',sans-serif;font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;text-decoration:none;border:1px solid var(--gold);transition:background .25s,color .25s}
+.hero-cta-primary{background:var(--gold);color:#060d08}
+.hero-cta-primary:hover{background:var(--gold-light)}
+.hero-cta-wa{background:transparent;color:var(--gold)}
+.hero-cta-wa:hover{background:var(--gold-dim)}
+.confianza{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:34px 24px 6px}
+.confianza ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px}
+.confianza li{text-align:center;padding:6px 10px}
+.confianza b{display:block;font-weight:500;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.confianza span{display:block;font-size:13px;line-height:1.5;color:var(--text-dim)}
+.confianza p{text-align:center;margin:16px 0 0;font-size:12px}
+.confianza p a{color:var(--text-muted);text-decoration:underline}
+.como-funciona{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:72px 24px 10px}
+.como-pasos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;counter-reset:paso}
+.como-pasos li{padding:26px 22px 24px;border:1px solid var(--gold-border);text-align:center;counter-increment:paso}
+.como-pasos li::before{content:counter(paso);display:block;font-family:'Playfair Display',serif;font-size:34px;color:var(--gold);margin-bottom:10px}
+.como-pasos b{display:block;font-weight:500;font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.como-pasos span{display:block;font-size:14px;line-height:1.6;color:var(--text-dim)}
+.como-pasos a{color:var(--gold)}
+@media(max-width:600px){.hero-cta{width:100%;max-width:320px}.confianza ul{grid-template-columns:1fr 1fr;gap:14px}.confianza span{font-size:12px}}
+</style>
 <style id="ofertas-estilos">
+.test-banner{max-width:1100px;margin:0 auto;padding:36px 24px 0;position:relative;z-index:1}
+.test-banner-link{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 22px;padding:18px 24px;border:1px solid rgba(201,168,76,.38);color:inherit;text-decoration:none;transition:background .25s,border-color .25s}
+.test-banner-link:hover{background:rgba(201,168,76,.08);border-color:var(--gold,#c9a84c)}
+.test-banner-etiqueta{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold,#c9a84c)}
+.test-banner-texto{flex:1 1 260px;font-size:15px;line-height:1.5}
+.test-banner-cta{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold,#c9a84c);white-space:nowrap}
 .ofertas-section{max-width:1100px;margin:0 auto;padding:70px 24px 10px;position:relative;z-index:1}
 .ofertas-section .section-header{margin-bottom:44px}
 .ofertas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;justify-content:center}
@@ -374,7 +427,7 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
 .faq-resp{padding:0 22px 20px;color:var(--text-dim);line-height:1.75;font-size:14px}
 .faq-resp a{color:var(--gold)}
 </style>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿Qué es un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Es una porción de un perfume original, pasada del frasco grande a un atomizador de 5 o 10 ml. Es el mismo perfume en otro envase: te permite probarlo varios días antes de decidir si compras el frasco completo."}}, {"@type": "Question", "name": "¿Los perfumes son originales?", "acceptedAnswer": {"@type": "Answer", "text": "Sí. Trabajamos con perfumes originales de proveedores confiables en Estados Unidos. Si tienes cualquier duda sobre un producto, escríbenos y te ayudamos."}}, {"@type": "Question", "name": "¿Cuántos sprays rinde un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Cada mililitro da unos 10 sprays. Un decant de 10 ml rinde alrededor de 100 sprays (unos 20 días con 5 sprays al día) y uno de 5 ml, unos 50."}}, {"@type": "Question", "name": "¿Cómo hago mi pedido?", "acceptedAnswer": {"@type": "Answer", "text": "Agrega tus decants al carrito y envía el pedido por WhatsApp, o paga con tarjeta desde la tienda. Después puedes ver el estado de tu pedido en la sección «Mis pedidos» con tu número de teléfono."}}, {"@type": "Question", "name": "¿Cuánto cuesta el envío y a dónde llegan?", "acceptedAnswer": {"@type": "Answer", "text": "Enviamos solo dentro de Guatemala: Q30 a la capital y Q40 al interior. El tiempo de entrega se confirma al hacer tu pedido."}}, {"@type": "Question", "name": "¿Qué formas de pago aceptan?", "acceptedAnswer": {"@type": "Answer", "text": "Puedes pagar con tarjeta desde la tienda o hacer tu pedido por WhatsApp. Si prefieres otra forma de pago, consúltanos por WhatsApp y te confirmamos las opciones."}}, {"@type": "Question", "name": "¿Venden botellas completas?", "acceptedAnswer": {"@type": "Answer", "text": "Sí, las cotizamos con un asesor perfume por perfume. Escríbenos por WhatsApp con el perfume y el tamaño que buscas."}}, {"@type": "Question", "name": "¿Y si el perfume que busco no está en la tienda?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp: con gusto consultamos si podemos conseguirlo."}}, {"@type": "Question", "name": "¿Cuál es su horario de atención?", "acceptedAnswer": {"@type": "Answer", "text": "Lunes a sábado de 9am a 8pm. Fuera de ese horario te respondemos en cuanto abramos."}}, {"@type": "Question", "name": "¿Cómo sé qué aroma me conviene?", "acceptedAnswer": {"@type": "Answer", "text": "Haz el test gratis de 3 preguntas, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos."}}, {"@type": "Question", "name": "¿Cómo debo guardar mi decant?", "acceptedAnswer": {"@type": "Answer", "text": "Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra guía para guardar perfumes y decants."}}, {"@type": "Question", "name": "¿Hacen ventas al mayoreo o regalos corporativos?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp con la cantidad de unidades y la fecha en que lo necesitas, y un asesor te prepara una propuesta."}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿Qué es un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Es una porción de un perfume original, pasada del frasco grande a un atomizador de 5 o 10 ml. Es el mismo perfume en otro envase: te permite probarlo varios días antes de decidir si compras el frasco completo."}}, {"@type": "Question", "name": "¿Los perfumes son originales?", "acceptedAnswer": {"@type": "Answer", "text": "Sí. Trabajamos con perfumes originales de proveedores locales e internacionales que verificamos previamente. Si se demuestra que un producto no es original, lo cambiamos por el mismo producto original: tienes 15 días desde que lo recibes para reportarlo. Conoce la <a href='https://herramientas.althamirgt.com/garantia/'>garantía de originalidad</a>. Si tienes cualquier duda, escríbenos y te ayudamos."}}, {"@type": "Question", "name": "¿Cuántos sprays rinde un decant?", "acceptedAnswer": {"@type": "Answer", "text": "Cada mililitro da unos 10 sprays. Un decant de 10 ml rinde alrededor de 100 sprays (unos 20 días con 5 sprays al día) y uno de 5 ml, unos 50."}}, {"@type": "Question", "name": "¿Cómo hago mi pedido?", "acceptedAnswer": {"@type": "Answer", "text": "Agrega tus decants al carrito y envía el pedido por WhatsApp, o paga con tarjeta desde la tienda. Después puedes ver el estado de tu pedido en la sección «Mis pedidos» con tu número de teléfono."}}, {"@type": "Question", "name": "¿Cuánto cuesta el envío y a dónde llegan?", "acceptedAnswer": {"@type": "Answer", "text": "Enviamos solo dentro de Guatemala: Q30 a la capital y Q40 al interior. El tiempo de entrega se confirma al hacer tu pedido."}}, {"@type": "Question", "name": "¿Qué formas de pago aceptan?", "acceptedAnswer": {"@type": "Answer", "text": "Puedes pagar con tarjeta desde la tienda o hacer tu pedido por WhatsApp. Si prefieres otra forma de pago, consúltanos por WhatsApp y te confirmamos las opciones."}}, {"@type": "Question", "name": "¿Venden botellas completas?", "acceptedAnswer": {"@type": "Answer", "text": "Sí, las cotizamos con un asesor perfume por perfume. Escríbenos por WhatsApp con el perfume y el tamaño que buscas."}}, {"@type": "Question", "name": "¿Y si el perfume que busco no está en la tienda?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp: con gusto consultamos si podemos conseguirlo."}}, {"@type": "Question", "name": "¿Cuál es su horario de atención?", "acceptedAnswer": {"@type": "Answer", "text": "Lunes a sábado de 9am a 8pm. Fuera de ese horario te respondemos en cuanto abramos."}}, {"@type": "Question", "name": "¿Cómo sé qué aroma me conviene?", "acceptedAnswer": {"@type": "Answer", "text": "Haz el test gratis de 3 preguntas, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos."}}, {"@type": "Question", "name": "¿Cómo debo guardar mi decant?", "acceptedAnswer": {"@type": "Answer", "text": "Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra guía para guardar perfumes y decants."}}, {"@type": "Question", "name": "¿Hacen ventas al mayoreo o regalos corporativos?", "acceptedAnswer": {"@type": "Answer", "text": "Escríbenos por WhatsApp con la cantidad de unidades y la fecha en que lo necesitas, y un asesor te prepara una propuesta."}}]}</script>
     <!-- Google AdSense: verificación del dominio (no carga anuncios en la tienda) -->
     <meta name="google-adsense-account" content="ca-pub-8914389946590196" />
 </head>
@@ -423,7 +476,7 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
         <path d="M3 7l1-3h16l1 3M4 7h16v13a1 1 0 01-1 1H5a1 1 0 01-1-1V7zM9 11a3 3 0 006 0" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <a class="navbar-ig" href="https://herramientas.althamirgt.com/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=navbar" title="Herramientas para perfumes: test de aromas, costo por spray y layering" aria-label="Herramientas para perfumes">
+    <a class="navbar-ig" href="https://herramientas.althamirgt.com/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=navbar" title="Herramientas para perfumes: test de aromas, costo por spray y layering" aria-label="Herramientas para perfumes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;display:block;">
         <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2M8.5 2h7M7 16h10" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -452,8 +505,24 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
   <h1 class="hero-title">Althamir<span>Fragancias de Oriente</span></h1>
   <div class="hero-divider"></div>
   
+  <div class="hero-ctas">
+    <a href="#catalogo" class="hero-cta hero-cta-primary" id="heroCtaDecants">Ver decants</a>
+    <a href="https://wa.me/50252547623?text=Hola%20%F0%9F%91%8B%20Quiero%20informaci%C3%B3n%20de%20los%20decants" class="hero-cta hero-cta-wa" target="_blank" rel="noopener noreferrer">Pedir por WhatsApp</a>
+  </div>
   <a href="#catalogo" class="scroll-cta"><span>Explorar Catálogo</span><div class="scroll-arrow"></div></a>
 </section>
+
+<!-- FRANJA DE CONFIANZA -->
+<section class="confianza" id="confianza" aria-label="Por qué comprar en Althamir">
+  <ul>
+    <li><b>Perfumes originales</b><span>De proveedores que verificamos</span></li>
+    <li><b>Envíos con guía</b><span>Rastrea tu pedido</span></li>
+    <li><b>Cambio garantizado</b><span>15 días si no fuera original</span></li>
+    <li><b>Paga fácil</b><span>Con tarjeta o transferencia</span></li>
+  </ul>
+  <p><a href="https://herramientas.althamirgt.com/garantia/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=garantia&amp;utm_content=franja-confianza" target="_blank" rel="noopener">Conoce la garantía de originalidad</a></p>
+</section>
+
 
 
 <!-- SECTION DIVIDER -->
@@ -471,6 +540,16 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
   </div>
   <div class="ofertas-grid" id="ofertasGrid"></div>
 </section>
+
+<!-- TEST DE PERFUMES: acceso rápido, arriba del catálogo -->
+<section class="test-banner" id="testBanner" aria-label="Test de perfumes">
+  <a class="test-banner-link" href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=banner-inicio">
+    <span class="test-banner-etiqueta">✦ Test gratis</span>
+    <span class="test-banner-texto">¿No sabes cuál elegir? Responde unas preguntas y descubre qué aroma va contigo.</span>
+    <span class="test-banner-cta">Hacer el test →</span>
+  </a>
+</section>
+
 
 <!-- Selector de perfumes para los combos -->
 <div class="combo-overlay" id="comboOverlay" role="dialog" aria-modal="true" aria-labelledby="comboTitulo" hidden>
@@ -503,7 +582,7 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
         <div class="about-pillar">
           <div class="pillar-content">
             <h4>Autenticidad garantizada</h4>
-            <p>Trabajamos directamente con fragancias originales de las mejores casas árabes del mundo.</p>
+            <p>Perfumes originales de proveedores que verificamos previamente. Si alguno no lo fuera, lo cambiamos. <a href="https://herramientas.althamirgt.com/garantia/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Conoce la garantía</a>.</p>
           </div>
         </div>
         <div class="about-pillar">
@@ -602,6 +681,20 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
     </div>
   </div>
 </section>
+
+<!-- CÓMO FUNCIONA -->
+<section class="como-funciona" id="como-funciona" aria-label="Cómo funciona">
+  <div class="section-header">
+    <p class="section-label">Pedir es fácil</p>
+    <h2 class="section-title">Cómo funciona</h2>
+  </div>
+  <ol class="como-pasos">
+    <li><b>Elige tu aroma</b><span>Explora el catálogo o haz el <a href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=como-funciona" target="_blank" rel="noopener">test gratis</a>.</span></li>
+    <li><b>Haz tu pedido</b><span>Por WhatsApp o paga con tarjeta aquí mismo.</span></li>
+    <li><b>Recíbelo con guía</b><span>Lo enviamos con mensajería y número de seguimiento.</span></li>
+  </ol>
+</section>
+
 
 <div class="filter-section">
   <div class="filter-inner">
@@ -1004,24 +1097,24 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
       <h2 class="section-title">Elige mejor tu próximo perfume</h2>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;margin-top:48px">
-      <a class="review-card" href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=test" style="display:block;text-decoration:none;color:inherit">
+      <a class="review-card" href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=test" style="display:block;text-decoration:none;color:inherit">
         <h3 style="font-size:17px;margin:0 0 8px">Test de perfumes</h3>
         <p style="font-size:13px;line-height:1.6;color:var(--text-muted);margin:0 0 14px">Responde 3 preguntas y descubre qué familia olfativa va con tu ocasión y tu clima.</p>
         <span style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold,#c9a14a)">Hacer el test →</span>
       </a>
-      <a class="review-card" href="https://herramientas.althamirgt.com/costo-por-spray/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=costo" style="display:block;text-decoration:none;color:inherit">
+      <a class="review-card" href="https://herramientas.althamirgt.com/costo-por-spray/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=costo" style="display:block;text-decoration:none;color:inherit">
         <h3 style="font-size:17px;margin:0 0 8px">Costo por spray</h3>
         <p style="font-size:13px;line-height:1.6;color:var(--text-muted);margin:0 0 14px">Calcula cuánto te cuesta cada spray y cuánto te dura tu frasco o decant.</p>
         <span style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold,#c9a14a)">Calcular →</span>
       </a>
-      <a class="review-card" href="https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=layering" style="display:block;text-decoration:none;color:inherit">
+      <a class="review-card" href="https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=layering" style="display:block;text-decoration:none;color:inherit">
         <h3 style="font-size:17px;margin:0 0 8px">Layering</h3>
         <p style="font-size:13px;line-height:1.6;color:var(--text-muted);margin:0 0 14px">Combina una base y un complemento para crear tu propia mezcla.</p>
         <span style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold,#c9a14a)">Crear mi mezcla →</span>
       </a>
     </div>
     <p style="text-align:center;margin-top:28px;font-size:13px;color:var(--text-muted)">
-      ¿Primera vez con decants? <a href="https://herramientas.althamirgt.com/guias/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=seccion-guias" style="color:var(--gold,#c9a14a)">Lee nuestras guías</a>
+      ¿Primera vez con decants? <a href="https://herramientas.althamirgt.com/guias/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=seccion-guias" style="color:var(--gold,#c9a14a)">Lee nuestras guías</a>
     </p>
   </div>
 </section>
@@ -1078,7 +1171,7 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
     </div>
     <div class="faq-lista">
       <details class="faq-item"><summary>¿Qué es un decant?</summary><div class="faq-resp">Es una porción de un perfume original, pasada del frasco grande a un atomizador de 5 o 10 ml. Es el mismo perfume en otro envase: te permite probarlo varios días antes de decidir si compras el frasco completo.</div></details>
-      <details class="faq-item"><summary>¿Los perfumes son originales?</summary><div class="faq-resp">Sí. Trabajamos con perfumes originales de proveedores confiables en Estados Unidos. Si tienes cualquier duda sobre un producto, escríbenos y te ayudamos.</div></details>
+      <details class="faq-item"><summary>¿Los perfumes son originales?</summary><div class="faq-resp">Sí. Trabajamos con perfumes originales de proveedores locales e internacionales que verificamos previamente. Si se demuestra que un producto no es original, lo cambiamos por el mismo producto original: tienes 15 días desde que lo recibes para reportarlo. Conoce la <a href="https://herramientas.althamirgt.com/garantia/" target="_blank" rel="noopener">garantía de originalidad</a>. Si tienes cualquier duda, escríbenos y te ayudamos.</div></details>
       <details class="faq-item"><summary>¿Cuántos sprays rinde un decant?</summary><div class="faq-resp">Cada mililitro da unos 10 sprays. Un decant de 10 ml rinde alrededor de 100 sprays (unos 20 días con 5 sprays al día) y uno de 5 ml, unos 50.</div></details>
       <details class="faq-item"><summary>¿Cómo hago mi pedido?</summary><div class="faq-resp">Agrega tus decants al carrito y envía el pedido por WhatsApp, o paga con tarjeta desde la tienda. Después puedes ver el estado de tu pedido en la sección «Mis pedidos» con tu número de teléfono.</div></details>
       <details class="faq-item"><summary>¿Cuánto cuesta el envío y a dónde llegan?</summary><div class="faq-resp">Enviamos solo dentro de Guatemala: Q30 a la capital y Q40 al interior. El tiempo de entrega se confirma al hacer tu pedido.</div></details>
@@ -1086,8 +1179,8 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
       <details class="faq-item"><summary>¿Venden botellas completas?</summary><div class="faq-resp">Sí, las cotizamos con un asesor perfume por perfume. <a href="https://wa.me/50252547623?text=Hola%20Althamir%20%F0%9F%91%8B%20Quiero%20cotizar%20la%20botella%20completa%20de..." target="_blank" rel="noopener">Escríbenos por WhatsApp</a> con el perfume y el tamaño que buscas.</div></details>
       <details class="faq-item"><summary>¿Y si el perfume que busco no está en la tienda?</summary><div class="faq-resp">Escríbenos por WhatsApp: con gusto consultamos si podemos conseguirlo.</div></details>
       <details class="faq-item"><summary>¿Cuál es su horario de atención?</summary><div class="faq-resp">Lunes a sábado de 9am a 8pm. Fuera de ese horario te respondemos en cuanto abramos.</div></details>
-      <details class="faq-item"><summary>¿Cómo sé qué aroma me conviene?</summary><div class="faq-resp">Haz el <a href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-test">test gratis de 3 preguntas</a>, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos.</div></details>
-      <details class="faq-item"><summary>¿Cómo debo guardar mi decant?</summary><div class="faq-resp">Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra <a href="https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=tienda&amp;utm_medium=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-guardar">guía para guardar perfumes y decants</a>.</div></details>
+      <details class="faq-item"><summary>¿Cómo sé qué aroma me conviene?</summary><div class="faq-resp">Haz el <a href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-test">test gratis de 3 preguntas</a>, que te recomienda una familia de aromas según la ocasión, el clima y tu gusto, o escríbenos y te recomendamos.</div></details>
+      <details class="faq-item"><summary>¿Cómo debo guardar mi decant?</summary><div class="faq-resp">Lejos del calor y de la luz, con el atomizador bien cerrado. Evita dejarlo en el carro o en el baño. Hay más consejos en nuestra <a href="https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=faq&amp;utm_campaign=herramientas&amp;utm_content=faq-guardar">guía para guardar perfumes y decants</a>.</div></details>
       <details class="faq-item"><summary>¿Hacen ventas al mayoreo o regalos corporativos?</summary><div class="faq-resp">Escríbenos por WhatsApp con la cantidad de unidades y la fecha en que lo necesitas, y un asesor te prepara una propuesta.</div></details>
     </div>
   </div>
@@ -1108,8 +1201,9 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
     <a href="#">Inicio</a>
     <a href="#nosotros">Sobre Althamir</a>
     <a href="#catalogo">Catálogo</a>
-    <a href="https://herramientas.althamirgt.com/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=footer">Herramientas</a>
-    <a href="https://herramientas.althamirgt.com/guias/?utm_source=tienda&amp;utm_medium=sitio&amp;utm_campaign=herramientas&amp;utm_content=footer-guias">Guías de perfumes</a>
+    <a href="https://herramientas.althamirgt.com/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=footer">Herramientas</a>
+    <a href="https://herramientas.althamirgt.com/guias/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=herramientas&amp;utm_content=footer-guias">Guías de perfumes</a>
+    <a href="https://herramientas.althamirgt.com/garantia/?utm_source=tienda&amp;utm_medium=referral&amp;utm_term=sitio&amp;utm_campaign=garantia&amp;utm_content=footer">Garantía de originalidad</a>
     <a href="#" onclick="openCart();return false;">Mi Orden</a>
   </div>
   <div class="footer-col">
@@ -2802,14 +2896,14 @@ Otras marcas disponibles: Maison Alhambra, Afnan, Bharara, French Avenue
 ENVÍOS: Ciudad de Guatemala entrega rápida. Interior del país coordinamos con transportistas.
 
 HERRAMIENTAS Y GUÍAS GRATIS (úsalas solo cuando ayuden al cliente: máximo UN enlace por respuesta, sin presionar y sin repetirlos si ya los enviaste):
-- Si no sabe qué perfume elegir o qué aroma le conviene: test de perfumes: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si pregunta cuánto rinde un perfume o cuánto cuesta cada spray o decant: https://herramientas.althamirgt.com/costo-por-spray/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si quiere combinar o mezclar perfumes (layering): https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si pregunta qué es un decant: https://herramientas.althamirgt.com/guias/que-es-un-decant/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si pregunta si un perfume es original: https://herramientas.althamirgt.com/guias/como-saber-si-un-perfume-es-original/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si pregunta cómo aplicar el perfume para que dure más: https://herramientas.althamirgt.com/guias/como-aplicar-perfume-para-que-dure-mas/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Si pregunta cómo guardar sus perfumes o decants: https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
-- Para otras dudas de perfumería (índice de guías): https://herramientas.althamirgt.com/guias/?utm_source=noor-web&utm_medium=chat-web&utm_campaign=bot
+- Si no sabe qué perfume elegir o qué aroma le conviene: test de perfumes: https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si pregunta cuánto rinde un perfume o cuánto cuesta cada spray o decant: https://herramientas.althamirgt.com/costo-por-spray/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si quiere combinar o mezclar perfumes (layering): https://herramientas.althamirgt.com/layering-de-perfumes/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si pregunta qué es un decant: https://herramientas.althamirgt.com/guias/que-es-un-decant/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si pregunta si un perfume es original o por la garantía: responde con calma que todos los perfumes son originales y se compran a proveedores locales e internacionales verificados previamente; que si se demuestra que un producto no es original se cambia por el mismo producto original (no se ofrecen reembolsos); que el plazo es de 15 días desde que lo reciben y deben escribir por WhatsApp con fotos del producto, la caja y los detalles del frasco (código de lote, atomizador, etiquetas), que se comparan con el registro de lo enviado; que en botellas completas el proceso de revisión se graba y pueden pedir un video corto; y que los decants se preparan del frasco original y no llevan código de lote. No inventes otras condiciones: para casos puntuales que escriban por WhatsApp. Garantía: https://herramientas.althamirgt.com/garantia/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot — Guía para identificar originales: https://herramientas.althamirgt.com/guias/como-saber-si-un-perfume-es-original/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si pregunta cómo aplicar el perfume para que dure más: https://herramientas.althamirgt.com/guias/como-aplicar-perfume-para-que-dure-mas/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Si pregunta cómo guardar sus perfumes o decants: https://herramientas.althamirgt.com/guias/como-guardar-perfumes-y-decants/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
+- Para otras dudas de perfumería (índice de guías): https://herramientas.althamirgt.com/guias/?utm_source=noor-web&utm_medium=referral&utm_term=chat-web&utm_campaign=bot
 Reglas: usa SOLO los enlaces de esta lista, nunca inventes otros. Responde primero la duda del cliente y luego ofrece el enlace en una frase corta. Los precios y la disponibilidad se confirman siempre con el catálogo, nunca con las herramientas.
 
 REGLAS IMPORTANTES:
@@ -3081,6 +3175,91 @@ async function noorSend() {
 </div>
 
 <!-- MIS PEDIDOS -->
+<!-- MODO APP: barra inferior (solo cuando la tienda está instalada) y aviso para instalarla -->
+<nav class="tabbar-app" id="tabbarApp" aria-label="Navegación de la app">
+  <a href="#catalogo" data-tab="catalogo"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/></svg><span>Catálogo</span></a>
+  <a href="#ofertas" data-tab="ofertas" id="tabOfertas" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.5 12 4h7.5v7.5L11 20z"/><circle cx="15.5" cy="8.5" r="1.2"/></svg><span>Ofertas</span></a>
+  <a href="https://herramientas.althamirgt.com/test-de-perfumes/?utm_source=app&amp;utm_medium=referral&amp;utm_term=tabbar&amp;utm_campaign=herramientas&amp;utm_content=tabbar" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 4h5M10.5 4v5.5L5.5 18a1.5 1.5 0 0 0 1.3 2.2h10.4a1.5 1.5 0 0 0 1.3-2.2l-5-8.5V4"/></svg><span>Test</span></a>
+  <button type="button" id="tabPedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8"/></svg><span>Pedidos</span></button>
+  <a href="https://wa.me/50252547623?text=Hola%20%F0%9F%91%8B" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.3 18.7z"/></svg><span>WhatsApp</span></a>
+</nav>
+<div class="app-instalar" id="appInstalar" role="dialog" aria-label="Instalar la app">
+  <p id="appInstalarTexto"></p>
+  <div class="app-instalar-b"><button type="button" id="appInstalarNo">Ahora no</button><button type="button" class="p" id="appInstalarSi">Instalar</button></div>
+</div>
+<script>
+/* MODO APP: la tienda instalada (PWA) muestra una barra inferior; en el navegador se ofrece instalarla, sin estorbar */
+(function () {
+  var K = 'alt_app_aviso', evInstalar = null;
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  function track(n, p) { try { if (window.altTrack) window.altTrack(n, p || {}); } catch (_) {} }
+  function reciente(dias) { try { return Date.now() - (+localStorage.getItem(K) || 0) < dias * 864e5; } catch (_) { return false; } }
+  function recordar() { try { localStorage.setItem(K, String(Date.now())); } catch (_) {} }
+
+  if (standalone) {
+    document.documentElement.classList.add('modo-app');
+    track('app_abierta');
+    var barra = document.getElementById('tabbarApp');
+    var ped = document.getElementById('tabPedidos');
+    if (ped) ped.addEventListener('click', function () { if (typeof abrirMisPedidos === 'function') abrirMisPedidos(); });
+    // "Ofertas" solo aparece cuando hay ofertas activas
+    var of = document.getElementById('ofertas'), tOf = document.getElementById('tabOfertas');
+    function revisarOfertas() { if (of && tOf) tOf.hidden = !(of.offsetParent !== null && of.offsetHeight > 0); }
+    if (of && window.MutationObserver) new MutationObserver(revisarOfertas).observe(of, { attributes: true, childList: true, subtree: true });
+    revisarOfertas(); setTimeout(revisarOfertas, 2500); setTimeout(revisarOfertas, 6000);
+    // pestaña activa según la sección a la vista
+    if (barra && 'IntersectionObserver' in window) {
+      var tabs = {}; barra.querySelectorAll('[data-tab]').forEach(function (a) { tabs[a.getAttribute('data-tab')] = a; });
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { Object.keys(tabs).forEach(function (k) { tabs[k].setAttribute('data-activo', k === e.target.id ? '1' : '0'); }); } });
+      }, { rootMargin: '-35% 0px -55% 0px' });
+      ['catalogo', 'ofertas'].forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
+    }
+    return;
+  }
+
+  var caja = document.getElementById('appInstalar'), txt = document.getElementById('appInstalarTexto');
+  var si = document.getElementById('appInstalarSi'), no = document.getElementById('appInstalarNo');
+  var UA = navigator.userAgent || '';
+  var enApp = /FBAN|FBAV|Instagram|TikTok|musical_ly|Line\//i.test(UA);          // navegadores dentro de otras apps: no pueden instalar
+  var esIOS = /iPad|iPhone|iPod/.test(UA) && !window.MSStream;
+  var iosSafari = esIOS && /Safari/.test(UA) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(UA) && !enApp;
+  function libre() {   // no estorbar: sin carrito/modales abiertos, sin aviso de cookies a la vista, pestaña activa
+    var ck = document.getElementById('alt-ck');
+    return !document.hidden && document.body.style.overflow !== 'hidden' && !(ck && ck.getClientRects().length > 0);
+  }
+  function mostrar(tipo) {
+    var intentos = 0, t = setInterval(function () {
+      intentos++;
+      if (intentos > 24) { clearInterval(t); return; }
+      if (!libre()) return;
+      clearInterval(t);
+      caja.classList.add('on'); track('app_instalar_mostrado', { tipo: tipo });
+    }, 5000);
+  }
+  function cerrar() { caja.classList.remove('on'); recordar(); }
+  if (no) no.addEventListener('click', function () { cerrar(); track('app_instalar_descartado'); });
+  window.addEventListener('appinstalled', function () { caja.classList.remove('on'); recordar(); track('app_instalada'); });
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); evInstalar = e;
+    if (reciente(14)) return;
+    txt.innerHTML = '<b>Instala la app de Althamir</b> y abre la tienda más rápido, con tus pedidos a un toque.';
+    si.style.display = ''; si.textContent = 'Instalar';
+    si.onclick = function () {
+      if (!evInstalar) return; caja.classList.remove('on');
+      evInstalar.prompt();
+      evInstalar.userChoice.then(function (r) { track('app_instalar_' + (r && r.outcome === 'accepted' ? 'aceptado' : 'rechazado')); recordar(); }).catch(function () {});
+      evInstalar = null;
+    };
+    mostrar('android');
+  });
+  if (iosSafari && !reciente(30)) {
+    txt.innerHTML = '<b>Instala la app de Althamir:</b> toca <b>Compartir</b> (el cuadro con la flecha) y luego <b>Añadir a pantalla de inicio</b>.';
+    si.style.display = 'none';
+    mostrar('ios');
+  }
+})();
+</script>
 <div class="confirm-overlay" id="pedidosOverlay">
   <div class="confirm-box">
     <div class="confirm-icon">📦</div>
@@ -4070,6 +4249,26 @@ if ('serviceWorker' in navigator) {
     (window.requestIdleCallback || function (f) { return setTimeout(f, 800); })(function () { cargar(); setInterval(cargar, REFRESCO_MS); }, { timeout: 2500 });
   }
   if (document.readyState === 'complete') arrancar(); else window.addEventListener('load', arrancar);
+})();
+</script>
+<script>
+/* "Ver decants desde Q..": el precio sale del inventario en vivo (el decant de 5 ml disponible más barato) */
+(function () {
+  var n = 0, t = setInterval(function () {
+    n++;
+    var ps = window.altProductos;
+    if (ps && ps.length) {
+      clearInterval(t);
+      var min = null;
+      ps.forEach(function (p) {
+        if (!p.disponible) return;
+        var v = parseFloat(String(p.ml5 || '').replace(/[^0-9.]/g, ''));
+        if (v > 0 && (min === null || v < min)) min = v;
+      });
+      var a = document.getElementById('heroCtaDecants');
+      if (a && min !== null) a.textContent = 'Ver decants desde Q' + (Number.isInteger(min) ? min : min.toFixed(2));
+    } else if (n > 40) clearInterval(t);
+  }, 500);
 })();
 </script>
 </body>

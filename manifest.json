@@ -34,5 +34,36 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "id": "/?fuente=app",
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
+  "shortcuts": [
+    {
+      "name": "Catálogo",
+      "short_name": "Catálogo",
+      "url": "/?fuente=app-atajo#catalogo",
+      "icons": [
+        {
+          "src": "https://res.cloudinary.com/dwnqasp3x/image/upload/c_crop,g_north,w_1.0,h_0.68,fl_relative/w_192,h_192,c_pad,b_rgb:060d08,f_auto,q_auto/imagen_001_q9ncz3.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ofertas",
+      "short_name": "Ofertas",
+      "url": "/?fuente=app-atajo#ofertas",
+      "icons": [
+        {
+          "src": "https://res.cloudinary.com/dwnqasp3x/image/upload/c_crop,g_north,w_1.0,h_0.68,fl_relative/w_192,h_192,c_pad,b_rgb:060d08,f_auto,q_auto/imagen_001_q9ncz3.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

@@ -68,7 +68,7 @@ function paginaProducto(p, todos) {
   const relacionados = todos.filter(x => x.slug !== p.slug && x.categoria === p.categoria).concat(todos.filter(x => x.slug !== p.slug && x.categoria !== p.categoria)).slice(0, 4);
   const msgPedido = `Hola Althamir 👋 Me interesa el decant de *${p.nombre}* (${p.marca}). ¿Está disponible?`;
   const msgBotella = `Hola, me interesa conocer el precio de botella completa de *${p.nombre}*. ¿Podrías ayudarme?`;
-  const utm = `utm_source=tienda&utm_medium=ficha&utm_campaign=${encodeURIComponent(p.slug)}`;
+  const utm = `utm_source=tienda&utm_medium=referral&utm_term=ficha&utm_campaign=${encodeURIComponent(p.slug)}`;
 
   const filasPrecio = tamanos.map(t => `<li><span>Decant ${t.ml} ml</span><strong>${dinero(t.precio)}</strong></li>`).join('');
   const miniaturas = p.imagenes.slice(1, 5).map(u => `<img src="${esc(u)}" alt="${esc(p.nombre)}, otra foto" loading="lazy">`).join('');
