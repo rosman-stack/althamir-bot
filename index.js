@@ -434,9 +434,10 @@ async function procesarArchivo(m) {
   await reenviarArchivoATelegram(m, telefono, leyenda);
 }
 
+let ultimoOkGroq = 0; // última vez que Groq respondió bien a un cliente (lo usa /health para no gastar llamadas de más)
 async function llamarGroq(historial) {
   const systemPrompt = await getNoorSystem();
-  const pedir = async (maxTokens) => {
+  const intentar = async (maxTokens) => {
     const res = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
@@ -447,14 +448,34 @@ async function llamarGroq(historial) {
       },
       { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' } }
     );
+    ultimoOkGroq = Date.now();
     const eleccion = res.data.choices?.[0];
     return { texto: (eleccion?.message?.content || '').trim(), motivo: eleccion?.finish_reason };
+  };
+  // Límite de uso de Groq (429, tokens por minuto de toda la organización): esperamos lo que indique (si es corto) y
+  // reintentamos una vez; si sigue, devolvemos '' y el webhook deriva al cliente a un asesor (en vez de dar un error técnico).
+  const pedir = async (maxTokens, puedeReintentar = true) => {
+    try {
+      return await intentar(maxTokens);
+    } catch (e) {
+      if (!e.response || e.response.status !== 429) throw e;
+      const h = parseFloat(e.response.headers && e.response.headers['retry-after']);
+      const m = /try again in ([0-9.]+)\s*(ms|s)/i.exec(JSON.stringify(e.response.data || ''));
+      const seg = isFinite(h) && h > 0 ? h : (m ? (m[2].toLowerCase() === 'ms' ? parseFloat(m[1]) / 1000 : parseFloat(m[1])) : 3);
+      if (puedeReintentar && seg <= 8) {
+        console.warn(`[Groq] Límite de uso (429): espero ${seg}s y reintento`);
+        await new Promise((r) => setTimeout(r, Math.ceil(seg * 1000) + 250));
+        return pedir(maxTokens, false);
+      }
+      console.warn('[Groq] Límite de uso (429) sin margen para reintentar: derivo a un asesor');
+      return { texto: '', motivo: 'rate_limit' };
+    }
   };
   // Este modelo "razona" antes de contestar y ese razonamiento gasta parte de max_tokens:
   // a veces se agota el límite y la respuesta llega VACÍA (y WhatsApp rechaza un texto vacío).
   // Reintentamos una vez con más margen; si sigue vacía, devolvemos '' y el webhook deriva a un asesor.
   let r = await pedir(450);
-  if (!r.texto) {
+  if (!r.texto && r.motivo !== 'rate_limit') {
     console.warn(`[Groq] Respuesta vacía (finish_reason: ${r.motivo}) — reintentando con más margen`);
     r = await pedir(1000);
     if (!r.texto) console.warn(`[Groq] Respuesta vacía otra vez (finish_reason: ${r.motivo})`);
@@ -826,6 +847,8 @@ app.get('/health', async (req, res) => {
 
   if (!GROQ_API_KEY) {
     problemas.push('GROQ_API_KEY no configurada');
+  } else if (Date.now() - ultimoOkGroq < 15 * 60 * 1000) {
+    // Groq respondió bien a un cliente hace poco: no gastamos otra llamada de cuota en el ping
   } else {
     try {
       await axios.post(
@@ -834,7 +857,9 @@ app.get('/health', async (req, res) => {
         { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' }, timeout: 8000 }
       );
     } catch (e) {
-      problemas.push(`Groq falló: ${e.response?.status || ''} ${e.response?.data?.error?.message || e.message}`);
+      // 429 = límite de uso: la clave y el servicio funcionan, así que no es una caída (antes mandaba una falsa alarma a Telegram)
+      if (e.response?.status === 429) console.warn('[salud] Groq en límite de uso (429): no es una caída');
+      else problemas.push(`Groq falló: ${e.response?.status || ''} ${e.response?.data?.error?.message || e.message}`);
     }
   }
 

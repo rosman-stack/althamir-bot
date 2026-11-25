@@ -382,11 +382,7 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
 .decant-etq.on{color:var(--gold)}
 .decant-hint{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted);pointer-events:none}
 .decant-text{font-size:15px;line-height:1.9;color:var(--text-dim);max-width:460px}
-.decant-sizes{display:flex;gap:12px;margin:24px 0 14px;max-width:460px}
-.decant-tapa{display:flex;gap:10px;margin:0 0 26px;max-width:460px}
-.decant-tapa-btn{padding:7px 15px;border:1px solid var(--gold-border);border-radius:30px;background:transparent;color:var(--text-dim);font-family:inherit;font-size:11px;letter-spacing:1.5px;cursor:pointer;transition:border-color .25s,background .25s,color .25s}
-.decant-tapa-btn.active{border-color:var(--gold);color:var(--text);background:var(--gold-dim)}
-.decant-sin3d .decant-tapa{display:none}
+.decant-sizes{display:flex;gap:12px;margin:24px 0 26px;max-width:460px}
 .decant-size{flex:1;padding:14px 10px;background:transparent;border:1px solid var(--gold-border);color:var(--text);font-family:inherit;cursor:pointer;text-align:center;transition:border-color .25s,background .25s}
 .decant-size b{display:block;font-family:'Playfair Display',serif;font-size:22px;font-weight:400;letter-spacing:1px}
 .decant-size span{display:block;margin-top:5px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)}
@@ -405,8 +401,8 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
   .decant-wrap{grid-template-columns:1fr;gap:26px}
   .decant-visual{max-width:300px}
   .decant-info{text-align:center}
-  .decant-text,.decant-sizes,.decant-tonos,.decant-tapa{margin-left:auto;margin-right:auto}
-  .decant-tonos,.decant-sizes,.decant-tapa{justify-content:center}
+  .decant-text,.decant-sizes,.decant-tonos{margin-left:auto;margin-right:auto}
+  .decant-tonos,.decant-sizes{justify-content:center}
 }
 </style>
 <style id="nuevos-estilos">
@@ -664,10 +660,6 @@ button.oferta-btn{font-family:inherit;cursor:pointer}
       <div class="decant-sizes" role="group" aria-label="Tamaño del decant">
         <button type="button" class="decant-size active" data-size="0" aria-pressed="true"><b>5 ml</b><span id="decantP5">ideal para descubrir</span></button>
         <button type="button" class="decant-size" data-size="1" aria-pressed="false"><b>10 ml</b><span id="decantP10">para llevar siempre</span></button>
-      </div>
-      <div class="decant-tapa" role="group" aria-label="Vista del frasco">
-        <button type="button" class="decant-tapa-btn active" data-cap="0" aria-pressed="true">Sin tapa</button>
-        <button type="button" class="decant-tapa-btn" data-cap="1" aria-pressed="false">Con tapa</button>
       </div>
       <p class="decant-label">Explora por familia</p>
       <div class="decant-tonos" role="group" aria-label="Familia olfativa">
@@ -1623,11 +1615,10 @@ function centrarMarca(btn) {
   barraInner.scrollTo({ left: Math.max(0, objetivo), behavior: REDUCIR_MOV ? 'auto' : 'smooth' });
 }
 
-filterBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
+function activarFiltroMarca(btn) {
     const siBusq = document.getElementById('searchInput');
     if (siBusq && siBusq.value) { siBusq.value = ''; siBusq.dispatchEvent(new Event('input')); }
-    filterBtns.forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const filter = btn.dataset.filter;
     const visibles = aplicarFiltroMarca(filter);
@@ -1640,8 +1631,8 @@ filterBtns.forEach(btn => {
     animarTarjetas3D(visibles);
     irAlCatalogo(filter);
     if (typeof altTrack === 'function') altTrack('filtro_marca', { marca: filter });
-  });
-});
+}
+filterBtns.forEach(btn => btn.addEventListener('click', () => activarFiltroMarca(btn)));
 
 // Pistas de que la barra se desliza: sombras en los bordes, flechas (en computadora) y un empujoncito inicial (en celular)
 function actualizarPistasBarra() {
@@ -2145,7 +2136,7 @@ if (searchInput) {
     if (noRes) noRes.style.display = visible === 0 && q ? 'block' : 'none';
 
     // Actualizar contador
-    updateCounter(visible, totalCards);
+    updateCounter(visible, document.querySelectorAll('.product-card').length);
 
     // Scroll al catálogo al empezar a escribir
     if (q.length === 1) {
@@ -2196,23 +2187,30 @@ themeToggle.addEventListener('click', () => {
 });
 
 // ═══ MÁS VENDIDOS ═══
+// Lista de respaldo (por nombre). Si el Sheet tiene una columna "Más vendido" (1, 2, 3… o "Si"), manda el Sheet.
 const bestsellers = [
-  { id: '3',  name: 'Asad',                  brand: 'Lattafa' },
-  { id: '1',  name: 'Yara Rosa',              brand: 'Lattafa' },
-  { id: '18', name: 'Amber Oud Gold Edition', brand: 'Al Haramain' },
-  { id: '5',  name: 'Emeer',                  brand: 'Lattafa' },
-  { id: '23', name: 'Phantom My Hero',         brand: 'Emper' },
-  { id: '26', name: 'Hawas for Him',           brand: 'Rasasi' },
-  { id: '25', name: 'Odyssey Homme White',     brand: 'Armaf' },
+  { name: 'Asad',                  brand: 'Lattafa' },
+  { name: 'Yara Rosa',              brand: 'Lattafa' },
+  { name: 'Amber Oud Gold Edition', brand: 'Al Haramain' },
+  { name: 'Emeer',                  brand: 'Lattafa' },
+  { name: 'Phantom My Hero',         brand: 'Emper' },
+  { name: 'Hawas for Him',           brand: 'Rasasi' },
+  { name: 'Odyssey Homme White',     brand: 'Armaf' },
 ];
+function listaMasVendidos() {
+  const marcados = (window.altProductos || []).filter(p => p.masVendido > 0).sort((a, b) => a.masVendido - b.masVendido);
+  return marcados.length ? marcados.map(p => ({ name: p.nombre, brand: p.marca })) : bestsellers;
+}
 
 function renderBestsellers() {
   const bsGrid = document.getElementById('bestsellersGrid');
   if (!bsGrid) return;
   bsGrid.innerHTML = '';
   let rank = 1;
-  for (const bs of bestsellers) {
-    const card = document.querySelector(`.product-card[data-id="${bs.id}"]`);
+  const tarjetas = Array.from(document.querySelectorAll('.product-card'));
+  for (const bs of listaMasVendidos()) {
+    const k = normalizarNombre(bs.name);
+    const card = tarjetas.find(c => normalizarNombre(c.dataset.name || '') === k);
     if (!card) continue;
     // Omitir si está bajo pedido según el Sheet
     const info = buscarEnInventario(bs.name);
@@ -2223,7 +2221,7 @@ function renderBestsellers() {
     div.innerHTML = `
       <div class="bs-img"><img src="${escH(cldThumb(imgs[0] || '', 500))}" alt="${escH(bs.name)}" loading="lazy"/></div>
       <div class="bs-body">
-        <p class="bs-brand">${escH(bs.brand)}</p>
+        <p class="bs-brand">${escH(bs.brand || card.dataset.brand || '')}</p>
         <p class="bs-name">${escH(bs.name)}</p>
       </div>
       <span class="bs-rank">${rank}</span>`;
@@ -2618,10 +2616,31 @@ function crearProductosNuevosDesdeSheet(productos) {
   });
 }
 
+// Lector de CSV completo: comillas, comillas dobles escapadas, saltos de línea DENTRO de una celda y CRLF.
+function csvAFilas(texto) {
+  const filas = []; let fila = [], campo = '', enComillas = false;
+  const t = String(texto || '').replace(/^\uFEFF/, '');
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (enComillas) {
+      if (c === '"') { if (t[i + 1] === '"') { campo += '"'; i++; } else enComillas = false; }
+      else campo += c;
+    } else if (c === '"') enComillas = true;
+    else if (c === ',') { fila.push(campo); campo = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; fila.push(campo); campo = ''; filas.push(fila); fila = []; }
+    else campo += c;
+  }
+  if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+  return filas;
+}
+
+const DISP_SI = ['si', 'sí', 'yes', 'true', '1', 'activo', 'active', '✓', '✔'];
 function parsearCSV(texto) {
-  const lineas = texto.trim().split('\n');
-  if (lineas.length < 2) return [];
-  const encabezados = parsearLineaCSV(lineas[0]).map(h => h.replace(/"/g, '').toLowerCase().trim());
+  const diag = { filas: 0, omitidas: [], avisos: [] };
+  window.__altDiag = diag;
+  const filas = csvAFilas(texto);
+  if (filas.length < 2) return [];
+  const encabezados = filas[0].map(h => h.replace(/"/g, '').toLowerCase().trim());
   const idxMarca      = encabezados.findIndex(h => h === 'marca' || h.includes('marca'));
   const idxNombre     = encabezados.findIndex(h => h === 'nombre' || h.includes('nombre') || h.includes('name'));
   // FIX: Búsqueda más precisa para columnas de precio (evita falsos positivos)
@@ -2633,38 +2652,151 @@ function parsearCSV(texto) {
   // Precio de venta de la botella completa: columna "Botella" (opcional "ML botella" con el tamaño). Las columnas de costo no se leen.
   const idxBotella    = encabezados.findIndex(h => h.includes('botella') && !/(tam|ml)/.test(h));
   const idxTamBotella = encabezados.findIndex(h => h.includes('botella') && /(tam|ml)/.test(h));
+  // Opcional: "Más vendido" (1, 2, 3… = puesto; "Si" = entra al final de la lista)
+  const idxMasVend    = encabezados.findIndex(h => h.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '') === 'masvendido' || h === 'destacado' || h === 'top');
+  if (idxNombre < 0) diag.avisos.push('No encuentro la columna "Nombre" en el encabezado del Sheet.');
 
   const productos = [];
-  for (let i = 1; i < lineas.length; i++) {
-    const cols = parsearLineaCSV(lineas[i]).map(c => c.replace(/"/g, '').trim());
-    const nombre = cols[idxNombre] || '';
-    if (!nombre) continue;
-    const dispVal = (cols[idxDisponible] || '').toLowerCase();
-    const estaActivo = ['si','sí','yes','true','1','activo','active','✓','✔'].includes(dispVal);
+  const vistos = new Set();
+  for (let i = 1; i < filas.length; i++) {
+    const cols = filas[i].map(c => c.trim());
+    if (!cols.some(Boolean)) continue;          // fila totalmente vacía
+    diag.filas++;
+    const nombre = (cols[idxNombre] || '').replace(/\s+/g, ' ');
+    if (!nombre) { diag.omitidas.push(`fila ${i + 1}: sin Nombre (hay datos en otras celdas)`); continue; }
+    const k = normalizarNombre(nombre);
+    if (vistos.has(k)) { diag.omitidas.push(`fila ${i + 1}: «${nombre}» está repetido; se usa la primera fila`); continue; }
+    vistos.add(k);
+    const dispVal = (cols[idxDisponible] || '').toLowerCase().replace(/[.!\s]+$/g, '').trim();
+    const estaActivo = DISP_SI.includes(dispVal);
+    if (!estaActivo && dispVal !== 'no') diag.avisos.push(`fila ${i + 1} «${nombre}»: Disponible dice «${cols[idxDisponible] || ''}» y se toma como No (usa Si o No)`);
     const imagenCelda = (idxImagen >= 0 ? (cols[idxImagen] || '') : '').trim();
-    const imagenes = imagenCelda.split('|').map(u => u.trim()).filter(Boolean);
+    const imagenes = imagenCelda.split(/[|\n]/).map(u => u.trim()).filter(Boolean);
+    const ml5 = cols[idxMl5] || '', ml10 = cols[idxMl10] || '';
+    if (!ml5 && !ml10) diag.avisos.push(`fila ${i + 1} «${nombre}»: sin precios de 5 ml ni de 10 ml`);
+    if (!imagenes.length) diag.avisos.push(`fila ${i + 1} «${nombre}»: sin imagen`);
+    const mv = idxMasVend >= 0 ? (cols[idxMasVend] || '').toLowerCase() : '';
+    const masVendido = /^\d+$/.test(mv) ? parseInt(mv, 10) : (['si', 'sí', 'x', '✓', '✔'].includes(mv) ? 999 : 0);
     productos.push({
       marca: cols[idxMarca] || '',
       nombre,
-      ml5: cols[idxMl5] || '',
-      ml10: cols[idxMl10] || '',
+      ml5,
+      ml10,
       disponible: estaActivo,
       imagen: imagenes[0] || '', // primera foto = miniatura principal (compatibilidad con lo existente)
       imagenes, // lista completa, para el carrusel
-      descripcion: (idxDesc >= 0 ? (cols[idxDesc] || '') : '').trim(),
+      descripcion: (idxDesc >= 0 ? (cols[idxDesc] || '') : '').replace(/\s*\n\s*/g, ' ').trim(),
       botella: idxBotella >= 0 ? precioBotellaQ(cols[idxBotella]) : '',
-      tamBotella: idxTamBotella >= 0 ? tamanoBotella(cols[idxTamBotella]) : ''
+      tamBotella: idxTamBotella >= 0 ? tamanoBotella(cols[idxTamBotella]) : '',
+      masVendido,
+      fila: i + 1
     });
   }
   return productos;
 }
 
+// ═══ CATÁLOGO 100 % DESDE EL SHEET ═══
+// Las tarjetas que vienen escritas en el HTML son solo un respaldo (si el Sheet no carga y no hay copia guardada).
+// Apenas se lee el Sheet, el catálogo se arma de cero con TODAS sus filas (Si y No), agrupadas por marca en el orden del Sheet.
+function tituloMarca(m) {
+  const s = String(m || '').trim();
+  return s === s.toUpperCase() ? s.toLowerCase().replace(/(^|[\s·-])(\p{L})/gu, (x, a, b) => a + b.toUpperCase()) : s;
+}
+let __altCatalogoSig = '';
+function reconstruirCatalogoDesdeSheet(productos) {
+  const grid = document.getElementById('productsGrid');
+  if (!grid || !productos.length) return false;
+  const sig = JSON.stringify(productos.map(p => [p.marca, p.nombre, p.ml5, p.ml10, p.disponible, p.imagenes, p.descripcion, p.botella, p.tamBotella]));
+  if (sig === __altCatalogoSig && grid.querySelector('.product-card[data-origen="sheet"]')) return false; // sin cambios desde la última vez
+  __altCatalogoSig = sig;
+
+  const grupos = new Map();
+  productos.forEach(p => {
+    const cat = categoriaCanonica(p.marca);
+    const etiqueta = cat && cat !== p.marca ? cat : (tituloMarca(p.marca) || 'Otras');
+    const clave = claveMarca(etiqueta) || 'otras';
+    if (!grupos.has(clave)) grupos.set(clave, { etiqueta, items: [] });
+    grupos.get(clave).items.push(p);
+  });
+
+  grid.textContent = '';
+  let id = 0;
+  grupos.forEach(g => {
+    const sec = document.createElement('div');
+    sec.className = 'brand-section';
+    sec.innerHTML = `<div class="brand-divider"><div class="bdline"></div><span class="bdlabel">✦ ${escH(g.etiqueta)} ✦</span><div class="bdline r"></div></div><div class="brand-grid"></div>`;
+    const bg = sec.querySelector('.brand-grid');
+    g.items.forEach(p => { const c = crearTarjetaDesdeSheet(p, id++); c.dataset.origen = 'sheet'; bg.appendChild(c); });
+    grid.appendChild(sec);
+  });
+  grid.querySelectorAll('.product-card').forEach(c => configurarCarruselTarjeta(c));
+
+  // Un botón de filtro por marca: se crean los que falten y se ocultan las marcas sin perfumes
+  const barra = document.querySelector('.filter-inner');
+  if (barra) {
+    const contador = document.getElementById('productCounter');
+    grupos.forEach(g => {
+      const existe = Array.from(barra.querySelectorAll('.filter-btn')).some(b => b.dataset.filter !== 'all' && mismaMarca(b.dataset.filter, g.etiqueta));
+      if (existe) return;
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn'; btn.dataset.filter = g.etiqueta; btn.textContent = g.etiqueta;
+      btn.addEventListener('click', () => activarFiltroMarca(btn));
+      barra.insertBefore(btn, contador || null);
+    });
+    barra.querySelectorAll('.filter-btn').forEach(b => {
+      if (b.dataset.filter === 'all') return;
+      b.style.display = Array.from(grupos.values()).some(g => mismaMarca(g.etiqueta, b.dataset.filter)) ? '' : 'none';
+    });
+  }
+  // Si había una marca elegida o un texto en la búsqueda, se vuelve a aplicar sobre las tarjetas nuevas
+  const act = document.querySelector('.filter-btn.active');
+  if (act && act.dataset.filter !== 'all') aplicarFiltroMarca(act.dataset.filter);
+  const si = document.getElementById('searchInput');
+  if (si && si.value) si.dispatchEvent(new Event('input'));
+  return true;
+}
+
+// Panel de diagnóstico: abre la tienda con ?diag=1 para ver qué leyó de tu Sheet y qué filas tienen problemas
+function mostrarDiagnosticoCatalogo(fuente, productos) {
+  const d = window.__altDiag || { filas: 0, omitidas: [], avisos: [] };
+  const tarjetas = document.querySelectorAll('.product-card[data-origen="sheet"]').length;
+  console.info(`[Sheets] ${productos.length} perfumes leídos (${fuente}), ${tarjetas} tarjetas, ${d.omitidas.length} filas omitidas, ${d.avisos.length} avisos`);
+  d.omitidas.concat(d.avisos).forEach(x => console.warn('[Sheets] ' + x));
+  if (!/[?&]diag=1/.test(location.search)) return;
+  let p = document.getElementById('altDiag');
+  if (!p) {
+    p = document.createElement('div'); p.id = 'altDiag';
+    p.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;max-width:min(440px,94vw);max-height:62vh;overflow:auto;background:#101010;color:#eee;border:1px solid #c9a84c;padding:12px 14px;font:12px/1.5 monospace;white-space:pre-wrap';
+    p.addEventListener('dblclick', () => p.remove());
+    document.body.appendChild(p);
+  }
+  const lineas = [`DIAGNÓSTICO DEL CATÁLOGO  (doble clic para cerrar)`, `Fuente: ${fuente} · ${new Date().toLocaleTimeString()}`,
+    `Filas con datos en el Sheet: ${d.filas}`, `Perfumes leídos: ${productos.length} (Si: ${productos.filter(p => p.disponible).length} · No: ${productos.filter(p => !p.disponible).length})`,
+    `Tarjetas en la página: ${tarjetas}`, ''];
+  if (d.omitidas.length) { lineas.push('FILAS OMITIDAS:'); d.omitidas.forEach(x => lineas.push(' • ' + x)); lineas.push(''); }
+  if (d.avisos.length) { lineas.push('AVISOS:'); d.avisos.forEach(x => lineas.push(' • ' + x)); }
+  if (!d.omitidas.length && !d.avisos.length) lineas.push('Sin problemas: todas las filas se leyeron bien.');
+  p.textContent = lineas.join('\n');
+}
+
 async function cargarInventario() {
   try {
-    const res = await fetch(`${SHEETS_CSV_URL}&_=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const csv = await res.text();
+    let csv = '', fuente = 'Sheet en vivo';
+    try {
+      const res = await fetch(`${SHEETS_CSV_URL}&_=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      csv = await res.text();
+    } catch (errRed) {
+      // Sin red o Google no respondió: se usa la última copia buena guardada en este dispositivo (hasta 7 días)
+      let copia = null; try { copia = JSON.parse(localStorage.getItem('alt_inventario_csv') || 'null'); } catch (_) {}
+      if (!copia || !copia.csv || Date.now() - copia.t > 7 * 864e5) throw errRed;
+      csv = copia.csv; fuente = 'copia guardada';
+      console.warn('[Sheets] Sin conexión con el Sheet: uso la copia guardada');
+    }
     const productos = parsearCSV(csv);
+    if (!productos.length) throw new Error('el Sheet no trajo perfumes (¿está publicado y la primera pestaña es el catálogo?)');
+    if (fuente === 'Sheet en vivo') { try { localStorage.setItem('alt_inventario_csv', JSON.stringify({ t: Date.now(), csv })); } catch (_) {} }
+    window.altProductos = productos;   // lo usan los "Más vendidos" y el selector de perfumes de los combos
 
     inventarioSheets = {};
     productos.forEach(p => {
@@ -2678,13 +2810,12 @@ async function cargarInventario() {
     catalogoSheets = generarTextoCatalogo(activos);
 
     console.log('[Sheets] Inventario cargado:', productos.length, 'productos');
-    crearProductosNuevosDesdeSheet(productos);
+    reconstruirCatalogoDesdeSheet(productos);
     aplicarDisponibilidad();
-    diagnosticarInventario(productos);
+    mostrarDiagnosticoCatalogo(fuente, productos);
     aplicarImagenesSheet();
     renderBestsellers();
     renderNuevosIngresos(productos);
-    window.altProductos = productos;   // lo usa el selector de perfumes de los combos
     if (window.altVialPrecios) window.altVialPrecios(productos);
     updateCounterDisponibles();
     if (typeof window.abrirProductoDesdeURL === 'function') window.abrirProductoDesdeURL();
@@ -3020,23 +3151,30 @@ async function noorSend() {
   try {
     const groqMessages = [
       { role: 'system', content: systemWithCart },
-      ...noorHistory.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
+      ...noorHistory.slice(-8).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
     ];
 
     // Llamar al proxy serverless (la key de Groq vive en Netlify, nunca en el cliente)
-    const res = await fetch('/.netlify/functions/noor', {
+    const pedirNoor = () => fetch('/.netlify/functions/noor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: groqMessages })
     });
-
-    const data = await res.json();
+    let res = await pedirNoor();
+    let data = await res.json().catch(() => ({}));
+    // Noor ocupada (límite de uso del modelo): una espera corta y un único reintento automático (el "escribiendo" sigue visible)
+    if (res.status === 503 || res.status === 429) {
+      const seg = Math.min(8, Math.max(2, Number(data && data.retry_after) || 4));
+      await new Promise(r => setTimeout(r, seg * 1000));
+      res = await pedirNoor();
+      data = await res.json().catch(() => ({}));
+    }
 
     if (!res.ok) {
-      const errMsg = data?.error?.message || 'Error ' + res.status;
-      console.error('Noor Gemini error:', res.status, errMsg);
+      console.error('Noor error:', res.status, data && data.error && data.error.code);
       noorHideTyping();
-      noorAddMsg('bot', `⚠️ Error ${res.status}: ${errMsg}\n\nEscríbenos directamente 👉 wa.me/50252547623 🖤`);
+      const ocupada = res.status === 503 || res.status === 429;
+      noorAddMsg('bot', (ocupada ? 'Estoy atendiendo a varias personas a la vez 🙏 Intenta de nuevo en unos segundos.' : 'Ups, no pude responder en este momento.') + '\n\nO escríbenos directamente 👉 wa.me/50252547623 🖤');
       setNoorQR('welcome');
       noorTyping = false;
       document.getElementById('noorSend').disabled = false;
@@ -3058,7 +3196,7 @@ async function noorSend() {
   } catch(e) {
     noorHideTyping();
     console.error('Noor fetch exception:', e);
-    noorAddMsg('bot', `⚠️ Error: ${e.message}\n\nEscríbenos directamente 👉 wa.me/50252547623 🖤`);
+    noorAddMsg('bot', 'Ups, no pude responder en este momento.\n\nO escríbenos directamente 👉 wa.me/50252547623 🖤');
     setNoorQR('welcome');
   }
 
@@ -3498,12 +3636,24 @@ if ('serviceWorker' in navigator) {
   var cta = document.getElementById('decantCta');
   var familia = { q: 'oriental' };
 
-  var E = { size: 0, cap: 0, fill: reducir ? 1 : 0, rot: 0.6, vel: AUTO, elev: 0.12, col: rgb('0.72,0.38,0.07') };   // lo que se ve
-  var OBJ = { size: 0, cap: 0, fill: 0, col: rgb('0.72,0.38,0.07') };                                               // a donde va
+  var E = { size: 0, cap: 1, spray: 0, giro: 0, fill: reducir ? 1 : 0, rot: 0.6, vel: AUTO, elev: 0.12, col: rgb('0.72,0.38,0.07') };   // lo que se ve (cap: 1 = tapado)
+  var OBJ = { size: 0, cap: 1, fill: 0, col: rgb('0.72,0.38,0.07') };                                               // a donde va
   var elevObj = 0.12, rotScroll = 0, arrastrando = false;
   var continuo = !reducir, kickHasta = 0, ajustar = function () {};
 
   function kick(ms) { kickHasta = performance.now() + ms; ajustar(); }
+
+  // CICLO (loop): tapado → la tapa sube → rocía una nube fina → la tapa baja → reposo → vuelve a empezar.
+  // En "movimiento reducido" o si el equipo no da la talla se queda tapado y quieto.
+  var CICLO = 9.5, tc = 0, FI = 2.18;        // FI: hacia dónde mira el orificio mientras rocía (rad)
+  function ss01(a, b, x) { var t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+  function guion(s) {
+    return {
+      cap: 1 - 0.42 * ss01(0.9, 2.0, s) + 0.42 * ss01(4.8, 5.9, s),        // 1 = tapa puesta · 0.58 = tapa levantada
+      spray: Math.min(1, Math.max(0, (s - 2.5) / 1.9)),                    // 0 → 1 mientras sale la nube
+      giro: ss01(0.3, 1.5, s) * (1 - ss01(5.2, 6.3, s))                    // cuánto se orienta el frasco hacia el frente
+    };
+  }
 
   // ── Controles (funcionan aunque el 3D no esté disponible) ──
   var etiquetas = sec.querySelectorAll('.decant-etq');
@@ -3517,14 +3667,6 @@ if ('serviceWorker' in navigator) {
       OBJ.size = Number(b.getAttribute('data-size'));
       if (!reducir && E.fill > 0.3) E.fill = 0.3;      // se vuelve a "llenar" al cambiar de tamaño
       kick(2400);
-    });
-  });
-  var botonesTapa = sec.querySelectorAll('.decant-tapa-btn');
-  botonesTapa.forEach(function (b) {
-    b.addEventListener('click', function () {
-      botonesTapa.forEach(function (x) { var on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-      OBJ.cap = Number(b.getAttribute('data-cap'));
-      kick(2000);
     });
   });
   chips.forEach(function (c) {
@@ -3597,7 +3739,7 @@ if ('serviceWorker' in navigator) {
       '#else',
       'precision mediump float;',
       '#endif',
-      'uniform vec2 uRes; uniform float uSel, uFill, uRot, uElev, uDist, uTy, uCap; uniform vec3 uLiq;',
+      'uniform vec2 uRes; uniform float uSel, uFill, uRot, uElev, uDist, uTy, uCap, uSpray; uniform vec3 uLiq;',
       'const float RG=.20, WALL=.022, BASE=.05;',
       'const float H5=1.35, H10=2.60;',
       'float ss(float a,float b,float x){float t=clamp((x-a)/(b-a),0.,1.);return t*t*(3.-2.*t);}',
@@ -3768,6 +3910,28 @@ if ('serviceWorker' in navigator) {
       '  vec3 col=F*refl+(1.-F)*trC;float al=F+(1.-F)*trA;',
       '  tOut=tg*s;',
       '  return vec4(min(col,1.),clamp(al,0.,1.));}',
+      '// ----- spray: nube fina que sale del orificio de cada atomizador -----',
+      'vec4 mist(vec3 ro,vec3 rd,float cx,float Hg){',
+      '  if(uSpray<=.001)return vec4(0.);',
+      '  vec3 N=vec3(cx+.095*cos(uRot),Hg+.352,-.095*sin(uRot));',
+      '  vec3 D=normalize(vec3(cos(uRot),.12,-sin(uRot)));',
+      '  float L=.25+1.4*ss(0.,.55,uSpray);',
+      '  vec3 C=N+D*L*.5;float Rb=L*.62+.08;',
+      '  vec3 oc=ro-C;float b=dot(oc,rd),c=dot(oc,oc)-Rb*Rb;float h=b*b-c;',
+      '  if(h<0.)return vec4(0.);',
+      '  float sq=sqrt(h),ta=max(-b-sq,0.),tb=-b+sq;',
+      '  float dt=(tb-ta)/9.,acc=0.;',
+      '  for(int i=0;i<9;i++){',
+      '    vec3 p=ro+rd*(ta+dt*(float(i)+.5));vec3 q=p-N;',
+      '    float al=dot(q,D);',
+      '    if(al>0.&&al<L){',
+      '      vec3 lat=q-D*al;float rc=.012+.34*al;',
+      '      float core=ss(rc,0.,length(lat));',
+      '      float head=ss(L,L-.35,al),tail=ss(0.,.06,al);',
+      '      float n=.65+.35*sin(al*38.-uSpray*26.+atan(lat.y,lat.z+1e-4)*5.);',
+      '      acc+=core*head*tail*n*dt*5.5;}}',
+      '  float a=(1.-exp(-acc))*(1.-ss(.55,1.,uSpray))*.85;',
+      '  return vec4(mix(vec3(.96,.93,.86),uLiq*1.3+.35,.22)*a,a);}',
       'void main(){',
       '  vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.;uv.x*=uRes.x/uRes.y;',
       '  vec3 T=vec3(0.,uTy,0.);',
@@ -3778,7 +3942,10 @@ if ('serviceWorker' in navigator) {
       '  vec4 v5=vial(ro,rd,-.42,1.,H5,t5)*mix(.50,1.,1.-uSel);',
       '  vec4 v10=vial(ro,rd,.42,1.,H10,t10)*mix(.50,1.,uSel);',
       '  vec4 nr=v5,fr=v10;if(t10<t5){nr=v10;fr=v5;}',
-      '  gl_FragColor=vec4(min(nr.rgb+fr.rgb*(1.-nr.a),1.),nr.a+fr.a*(1.-nr.a));',
+      '  vec4 bs=vec4(min(nr.rgb+fr.rgb*(1.-nr.a),1.),nr.a+fr.a*(1.-nr.a));',
+      '  vec4 m5=mist(ro,rd,-.42,H5),m10=mist(ro,rd,.42,H10);',
+      '  vec4 ms=vec4(m5.rgb+m10.rgb*(1.-m5.a),m5.a+m10.a*(1.-m5.a));',
+      '  gl_FragColor=vec4(min(ms.rgb+bs.rgb*(1.-ms.a),1.),min(bs.a+ms.a*(1.-bs.a),1.));',
       '}'
     ].join('\n');
     var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
@@ -3802,7 +3969,7 @@ if ('serviceWorker' in navigator) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    var U = {}; ['uRes', 'uSel', 'uFill', 'uRot', 'uElev', 'uDist', 'uTy', 'uCap', 'uLiq'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+    var U = {}; ['uRes', 'uSel', 'uFill', 'uRot', 'uElev', 'uDist', 'uTy', 'uCap', 'uSpray', 'uLiq'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
     var calidad = 1, anchoPrev = 0;
     function medir() {
@@ -3822,9 +3989,9 @@ if ('serviceWorker' in navigator) {
     function dibujar() {
       gl.uniform2f(U.uRes, canvas.width, canvas.height);
       gl.uniform1f(U.uSel, E.size);   // 0 = 5 ml resaltado, 1 = 10 ml resaltado
-      var dist = 5.8 + 0.7 * E.cap;
-      gl.uniform1f(U.uDist, dist); gl.uniform1f(U.uTy, 1.45 + 0.17 * E.cap); gl.uniform1f(U.uCap, E.cap);
-      if (Math.abs(E.cap - capEtq) > 0.002) { capEtq = E.cap; ponerEtiquetas(dist); }
+      var dist = 7.3;      // cámara fija: con la tapa levantada el conjunto es más alto y debe seguir entrando
+      gl.uniform1f(U.uDist, dist); gl.uniform1f(U.uTy, 1.88); gl.uniform1f(U.uCap, E.cap); gl.uniform1f(U.uSpray, E.spray);
+      if (capEtq < 0) { capEtq = 0; ponerEtiquetas(dist); }
       gl.uniform1f(U.uFill, E.fill);
       gl.uniform1f(U.uRot, E.rot + rotScroll);
       gl.uniform1f(U.uElev, E.elev);
@@ -3840,7 +4007,16 @@ if ('serviceWorker' in navigator) {
         for (var i = 0; i < 3; i++) E.col[i] += (OBJ.col[i] - E.col[i]) * k;
         E.elev += (elevObj - E.elev) * (1 - Math.exp(-s * 4));
       } else { E.size = OBJ.size; E.cap = OBJ.cap; E.fill = OBJ.fill; E.col = OBJ.col.slice(); E.elev = elevObj; }
-      if (!arrastrando) { E.rot += E.vel * s; E.vel += (AUTO - E.vel) * (1 - Math.exp(-s * 1.6)); }
+      if (!reducir && continuo) {
+        tc += s;
+        var g = guion(tc % CICLO);
+        E.cap = g.cap; E.spray = g.spray; E.giro = g.giro;
+        if (!arrastrando && g.giro > 0.001) {      // el orificio gira hacia el frente mientras se destapa y rocía
+          var objRot = -FI - rotScroll, dif = Math.atan2(Math.sin(objRot - E.rot), Math.cos(objRot - E.rot));
+          E.rot += dif * (1 - Math.exp(-s * 4 * g.giro));
+        }
+      } else { E.giro = 0; E.spray = 0; }
+      if (!arrastrando) { E.rot += E.vel * s * (1 - E.giro); E.vel += (AUTO - E.vel) * (1 - Math.exp(-s * 1.6)); }
     }
 
     var corriendo = false, visible = false, raf = 0, ultimo = 0, n = 0, acum = 0, vivo = true;
